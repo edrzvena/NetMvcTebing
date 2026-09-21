@@ -17,25 +17,144 @@ Belum ada: authentication flow, authorization/role, dan semua domain model inti 
 ## 1. Struktur Folder yang Disarankan
 
 ```
-Models/            <- entity EF Core (representasi tabel)
-DTOs/              <- request/response object (input form, output API/View)
+Models/                 <- entity EF Core (representasi tabel), murni data + relasi, tanpa logic
+DTOs/                   <- data masuk/keluar antara Controller <-> Service
   Auth/
   Mountain/
   Booking/
   Payment/
   Review/
-Services/          <- business logic (IBookingService, BookingService, dst)
-Repositories/       <- (opsional) kalau mau pisahin akses data dari service
+ViewModels/             <- data khusus kebutuhan 1 Razor View (lihat penjelasan di bawah)
+  Mountain/
+  Booking/
+Repositories/
+  Interfaces/           <- IRepository<T>, IUserRepository, IMountainRepository, dst
+  Implementations/      <- Repository<T>, UserRepository, MountainRepository, dst
+Services/
+  Interfaces/           <- IAuthService, IMountainService, IBookingService, dst
+  Implementations/      <- AuthService, MountainService, BookingService, dst
+Mappings/               <- extension method .ToDto()/.ToViewModel() per entity, mis. MountainMappings.cs
+Exceptions/             <- NotFoundException, BusinessRuleException, dst (dilempar dari Service)
+Middlewares/            <- ExceptionHandlingMiddleware.cs (nangkep exception di atas, jadi response rapi)
+Constants/              <- Roles.cs, FileUploadSettings.cs (hindari magic string/number)
+Helpers/                <- FileStorageHelper.cs (dipakai bareng MountainService & PaymentService)
+Extensions/             <- ServiceCollectionExtensions.cs (rapihin registrasi DI di Program.cs)
 Controllers/
 Views/
 Common/
-  Enums/           <- UserRole, BookingStatus, PaymentStatus, DifficultyLevel
+  Enums/                <- UserRole, BookingStatus, PaymentStatus, DifficultyLevel, MountainStatus
+Data/
+  AppDbContext.cs
+  Configurations/       <- IEntityTypeConfiguration<T> per entity, biar OnModelCreating gak jadi 1 method raksasa
+  Seed/                 <- DbSeeder.cs (role awal + sample data gunung buat dev/testing)
+Migrations/
 ```
 
-Catatan: nama folder `ViewModels/` yang udah ada bisa dipakai buat model yang murni buat
-kebutuhan tampilan (misal gabungan data buat 1 halaman), sedangkan `DTOs/` buat data
-masuk/keluar dari Service/Controller. Kalau mau lebih simpel, boleh juga gabung jadi satu
-folder aja (`DTOs/`) — nggak wajib pisah, yang penting konsisten.
+**Catatan `Helpers/`:** cuma buat logic yang beneran dipakai berulang di >1 tempat (contoh:
+generate nama file unik dipakai `MountainService` & `PaymentService`). Kalau suatu logic cuma
+dipakai 1 tempat, taruh di situ aja — jangan jadiin folder ini tempat buang semua hal yang
+bingung ditaruh mana.
+
+**Sengaja belum ditambah** karena belum ada kebutuhan konkretnya di scope MVP:
+- `Filters/` (custom action filter) — `[Authorize]` bawaan + `Exceptions/`+`Middlewares/` udah cukup.
+- Project test terpisah (`Tebing.Tests`) — valid ditambah nanti buat unit test business rule
+  kuota di `BookingService`, tapi itu **project sendiri** di solution, bukan folder di dalam `Tebing/`.
+
+**Pakai `Repositories/`** — final: **1 database (SQL Server) aja**, ide multi-provider
+(SQL Server + PostgreSQL) di-drop supaya lebih simpel. Repository tetap dipertahankan, tapi
+alasannya sekarang murni soal kerapihan & testability (bukan syarat teknis buat ganti provider,
+seperti yang sempat diklaim sebelumnya dan sudah dikoreksi):
+- `Service` cuma manggil `IXxxRepository`, gak pernah sentuh `AppDbContext`/`DbSet` langsung —
+  pemisahan tanggung jawab jadi jelas: Repository = akses data, Service = business logic.
+- Gampang di-mock pas nulis unit test buat business rule (misal validasi kuota booking di
+  `BookingService`) tanpa nyentuh database beneran.
+
+### DTO vs ViewModel — kapan pakai yang mana
+
+Dua-duanya tetap dibutuhkan, beda peran:
+
+- **DTO** — kontrak data antara `Controller` dan `Service`. Isinya murni data (input create/update,
+  atau hasil query), gak peduli soal tampilan. Contoh: `BookingCreateDto` cuma berisi
+  `MountainId, HikingRouteId, ClimbDate, List<ParticipantDto>`.
+- **ViewModel** — bentuk data yang dibutuhkan **satu halaman Razor View**, sering kali gabungan
+  dari satu/lebih DTO **plus** data tambahan yang cuma dipakai UI (dropdown `SelectListItem`,
+  flag `bool CanReview`, dsb). Contoh: `BookingCreateViewModel` = `BookingCreateDto` +
+  `List<SelectListItem> MountainOptions` + `List<SelectListItem> RouteOptions`.
+
+Alur mapping: `View (form) → ViewModel → Controller mapping ke DTO → Service`. Kalau suatu
+halaman cuma nampilin data mentah tanpa tambahan apa pun (misal halaman riwayat booking),
+langsung pakai DTO-nya di View — gak usah dipaksain bikin ViewModel yang isinya cuma nge-wrap
+DTO tanpa nilai tambah.
+
+---
+
+## Setup Awal — Repository Pattern & Switchable Provider (SQL Server ↔ PostgreSQL)
+
+Kerjain ini duluan, sebelum Tahap 1, karena semua tahap fitur setelahnya bakal bikin
+`IXxxRepository` juga (bukan cuma Service langsung ke `AppDbContext`).
+
+**1. Generic Repository:**
+
+```csharp
+public interface IRepository<T> where T : class
+{
+    Task<T?> GetByIdAsync(int id);
+    Task<List<T>> GetAllAsync();
+    Task AddAsync(T entity);
+    void Update(T entity);
+    void Remove(T entity);
+    Task SaveChangesAsync();
+}
+
+public class Repository<T>(AppDbContext context) : IRepository<T> where T : class
+{
+    protected readonly AppDbContext Context = context;
+    protected readonly DbSet<T> DbSet = context.Set<T>();
+
+    public async Task<T?> GetByIdAsync(int id) => await DbSet.FindAsync(id);
+    public async Task<List<T>> GetAllAsync() => await DbSet.ToListAsync();
+    public async Task AddAsync(T entity) => await DbSet.AddAsync(entity);
+    public void Update(T entity) => DbSet.Update(entity);
+    public void Remove(T entity) => DbSet.Remove(entity);
+    public async Task SaveChangesAsync() => await Context.SaveChangesAsync();
+}
+```
+
+Tiap entity nambahin interface turunan buat query spesifik, contoh:
+
+```csharp
+public interface IUserRepository : IRepository<User>
+{
+    Task<User?> GetByEmailAsync(string email);
+}
+
+public class UserRepository(AppDbContext context) : Repository<User>(context), IUserRepository
+{
+    public async Task<User?> GetByEmailAsync(string email) =>
+        await DbSet.FirstOrDefaultAsync(u => u.Email == email);
+}
+```
+
+Pola yang sama dipakai buat `IMountainRepository`, `IHikingRouteRepository`,
+`IBookingRepository` (+ `GetPendingByMountainAsync`, dst), `IPaymentRepository`,
+`IReviewRepository`. Service depend ke interface ini, contoh
+`BookingService(IBookingRepository bookingRepo, IHikingRouteRepository routeRepo)`.
+
+**2. Database tetap 1 — SQL Server saja**
+
+Keputusan final: ide multi-provider (SQL Server + PostgreSQL) di-drop, cukup 1 database biar
+gak nambah kompleksitas. `AppDbContext` tetap seperti yang sudah ada sekarang (`Data/AppDbContext.cs`,
+non-abstract, langsung dipakai lewat `AddDbContext<AppDbContext>()` seperti di `Program.cs`
+saat ini) — gak ada perubahan di bagian ini.
+
+**3. Registrasi DI di `Program.cs`:**
+
+```csharp
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMountainRepository, MountainRepository>();
+// ...dst untuk tiap repository & service
+```
 
 ---
 
@@ -64,6 +183,8 @@ Ini fondasi, dipakai di banyak model lain.
 - `LoginDto` — Email, Password
 - `ForgotPasswordDto` — Email
 - `ResetPasswordDto` — Token, NewPassword, ConfirmPassword
+
+**Repository:** `IUserRepository` — `GetByEmailAsync`, `AddAsync`, `Update` (dipakai `AuthService`).
 
 **Service:**
 - `IAuthService` / `AuthService` — Register (hash password pakai `PasswordHasher<User>`), Login
@@ -121,6 +242,9 @@ public class HikingRoute
 - `MountainDetailDto` — semua field + `List<RouteDto> Routes` + `List<ReviewDto> Reviews`
 - `MountainCreateDto` / `MountainUpdateDto` — field yang boleh admin isi
 - `RouteDto`, `RouteCreateDto`
+
+**Repository:** `IMountainRepository`, `IHikingRouteRepository` (CRUD dasar dari `IRepository<T>`
++ query tambahan kalau perlu, misal `GetActiveRoutesByMountainIdAsync`).
 
 **Service:** `IMountainService` — GetAll (dengan filter provinsi/difficulty opsional), GetById,
 Create, Update, Delete (soft-delete via `IsActive`/`Status` lebih aman daripada hard delete).
@@ -188,6 +312,10 @@ public class BookingParticipant
 3. `TotalPrice` dihitung server-side (misal harga per orang × jumlah orang), jangan percaya
    angka dari client.
 
+**Repository:** `IBookingRepository` — `AddAsync`, `GetByIdAsync` (with include Participants +
+Payment), `GetByUserIdAsync`, `GetPendingCountByRouteAndDateAsync` (buat cek kuota, pakai
+`IHikingRouteRepository` buat ambil `DailyQuota`-nya).
+
 **Service:** `IBookingService` — Create, GetByUser, GetById, GetAllForAdmin (filter by mountain
 milik admin itu), UpdateStatus.
 
@@ -219,8 +347,11 @@ public class Payment
 - `PaymentUploadDto` — BookingId, file bukti transfer (`IFormFile`), Amount
 - `PaymentVerifyDto` — Status (Verified/Rejected)
 
+**Repository:** `IPaymentRepository` — `AddAsync`, `GetByBookingIdAsync`.
+
 **Service:** `IPaymentService` — Upload (simpan file ke `wwwroot/uploads/payments/` atau storage
-lain, buat record Payment), Verify (admin, kalau `Verified` → set `Booking.Status = Approved`).
+lain, buat record Payment), Verify (admin, kalau `Verified` → set `Booking.Status = Approved`
+lewat `IBookingRepository`).
 
 **Catatan keamanan:** validasi tipe & ukuran file upload (jpg/png/pdf, max misal 2MB), jangan
 simpan file langsung pakai nama asli dari user (rawan path traversal) — generate nama unik
@@ -259,6 +390,9 @@ public class Review
 `Booking.UserId == current user`, dan belum pernah review buat booking itu (unique constraint
 `BookingId` di tabel Review, 1 review per booking).
 
+**Repository:** `IReviewRepository` — `AddAsync`, `GetByMountainIdAsync`, `ExistsForBookingAsync`
+(buat cek 1 review per booking).
+
 **Service:** `IReviewService` — Create, GetByMountain (buat halaman detail gunung + hitung average rating).
 
 **Migration:** `Add-Migration AddReview`.
@@ -277,27 +411,44 @@ Kalau MVP di atas udah jalan, baru pertimbangkan:
 
 ---
 
-## Ringkasan Checklist Model & DTO
+## Ringkasan Checklist Model, Repository & DTO
 
-| Model | DTO terkait |
-|---|---|
-| `User` (+`Role`) | `RegisterDto`, `LoginDto`, `ForgotPasswordDto`, `ResetPasswordDto` |
-| `Mountain` | `MountainListDto`, `MountainDetailDto`, `MountainCreateDto`, `MountainUpdateDto` |
-| `HikingRoute` | `RouteDto`, `RouteCreateDto` |
-| `Booking` | `BookingCreateDto`, `BookingListDto`, `BookingDetailDto`, `BookingStatusUpdateDto` |
-| `BookingParticipant` | `ParticipantDto` |
-| `Payment` | `PaymentUploadDto`, `PaymentVerifyDto` |
-| `Review` | `ReviewCreateDto`, `ReviewDto` |
+| Model | Repository | DTO terkait |
+|---|---|---|
+| `User` (+`Role`) | `IUserRepository` | `RegisterDto`, `LoginDto`, `ForgotPasswordDto`, `ResetPasswordDto` |
+| `Mountain` | `IMountainRepository` | `MountainListDto`, `MountainDetailDto`, `MountainCreateDto`, `MountainUpdateDto` |
+| `HikingRoute` | `IHikingRouteRepository` | `RouteDto`, `RouteCreateDto` |
+| `Booking` | `IBookingRepository` | `BookingCreateDto`, `BookingListDto`, `BookingDetailDto`, `BookingStatusUpdateDto` |
+| `BookingParticipant` | *(lewat `IBookingRepository`)* | `ParticipantDto` |
+| `Payment` | `IPaymentRepository` | `PaymentUploadDto`, `PaymentVerifyDto` |
+| `Review` | `IReviewRepository` | `ReviewCreateDto`, `ReviewDto` |
 
 ## Urutan Pengerjaan Disarankan
 
-1. Enum + `User.Role` → migrate.
-2. Auth (`AuthService`, `AccountController`, cookie auth di `Program.cs`) → **test**: register & login manual dulu sebelum lanjut.
-3. `Mountain` + `HikingRoute` (model, DTO, service, controller admin+public) → migrate, seed 1-2 data gunung buat testing.
-4. `Booking` + `BookingParticipant` → migrate, **test**: bikin booking dari akun Pendaki.
-5. `Payment` → migrate, **test**: upload bukti, verifikasi dari akun Admin.
-6. `Review` → migrate, **test**: alur penuh register → booking → approve → completed (manual set dulu kalau belum ada job otomatis) → review.
-7. (Opsional) fitur v2 di Tahap 7.
+1. Setup awal: `IRepository<T>` generic + repository per entity (lihat "Setup Awal" di atas) → **test**: app tetap `dotnet run` jalan normal pakai `AppDbContext`/SQL Server yang sudah ada, gak ada perubahan koneksi.
+2. Enum + `User.Role` + `IUserRepository` → migrate.
+3. Auth (`AuthService` pakai `IUserRepository`, `AccountController`, cookie auth di `Program.cs`) → **test**: register & login manual dulu sebelum lanjut.
+4. `Mountain` + `HikingRoute` (model, repository, DTO, service, controller admin+public) → migrate, seed 1-2 data gunung buat testing.
+5. `Booking` + `BookingParticipant` → migrate, **test**: bikin booking dari akun Pendaki (termasuk cek validasi kuota).
+6. `Payment` → migrate, **test**: upload bukti, verifikasi dari akun Admin.
+7. `Review` → migrate, **test**: alur penuh register → booking → approve → completed (manual set dulu kalau belum ada job otomatis) → review.
+8. (Opsional) fitur v2 di Tahap 7.
 
 Tiap nomor di atas idealnya jadi 1 commit/PR sendiri — biar gampang ditelusuri kalau ada bug,
 dan gampang di-review satu-satu.
+
+---
+
+## Riwayat Keputusan
+
+- Sempat dipertimbangkan setup 2 database provider (SQL Server + PostgreSQL, switchable lewat
+  config). Sudah diriset ke dokumentasi resmi EF Core dan ketemu pendekatan yang benar
+  (`AppDbContext` abstract + subclass per provider + `AddDbContext<TContextService, TContextImplementation>`),
+  tapi **keputusan akhir: di-drop, cukup 1 database (SQL Server)** biar project gak nambah
+  kompleksitas yang belum perlu. Kalau suatu saat mau dihidupkan lagi, riset di atas masih valid
+  — sumbernya: [Migrations with Multiple Providers — EF Core, Microsoft Learn](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/providers),
+  [AddDbContext Method — Microsoft Learn API Reference](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.entityframeworkservicecollectionextensions.adddbcontext?view=efcore-10.0),
+  [dotnet/efcore Issue #23023](https://github.com/dotnet/efcore/issues/23023),
+  [Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0 — NuGet Gallery](https://www.nuget.org/packages/Npgsql.EntityFrameworkCore.PostgreSQL/).
+- Repository pattern tetap dipertahankan meskipun cuma 1 database — alasannya murni kerapihan
+  (Service gak nyentuh `AppDbContext` langsung) & testability, bukan kebutuhan teknis provider.
