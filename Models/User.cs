@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Tebing.Common.Enums;
 
 namespace Tebing.Models;
 
@@ -12,6 +13,8 @@ public class User
 
     [Required, MaxLength(100)] public string FullName { get; set; } = string.Empty;
     [Required] public string PasswordHash { get; set; } = string.Empty;
+
+    public UserRole Role { get; set; } = UserRole.Pendaki;
 
     //Feature forgot password
     public string? ResetPasswordToken { get; set; }
