@@ -284,6 +284,88 @@ Microsoft.EntityFrameworkCore` buat query langsung — dia cuma kenal `Tebing.Re
 Kalau lo lihat ada `using` yang "lompat lapisan" (misal Controller `using Tebing.Data;`), itu
 tanda arsitekturnya udah dilanggar.
 
+> Catatan: contoh `Booking` di atas itu **rencana** (belum ditulis, itu Tahap 4 di
+> `IMPLEMENTATION_PLAN.md`). Biar ada yang bisa dicek langsung ke kode asli yang **udah beneran
+> jalan sekarang**, ini contoh yang sama tapi buat fitur Login yang udah di-commit.
+
+### Contoh Alur Nyata #2: Login (kode yang beneran sudah ada, bukan rencana)
+
+```
+1. Views/Account/Login.cshtml
+   Form di-submit (POST) ke AccountController.Login
+
+2. Controllers/AccountController.cs
+   using Tebing.DTOs.Auth;
+   using Tebing.Services.Interfaces;
+
+   public class AccountController(IAuthService authService) : Controller
+   {
+       [HttpPost]
+       [ValidateAntiForgeryToken]
+       public async Task<IActionResult> Login(LoginDto dto, string? returnUrl = null)
+       {
+           var result = await authService.LoginAsync(dto);
+           if (!result.Success)
+           {
+               ModelState.AddModelError(string.Empty, result.Error ?? "Login gagal.");
+               return View(dto);
+           }
+           return RedirectToAction("Index", "Home");
+       }
+   }
+
+3. Services/Implementations/AuthService.cs
+   using Microsoft.AspNetCore.Identity;
+   using Tebing.Repositories.Interfaces;
+
+   public class AuthService(IUserRepository userRepository, IHttpContextAccessor httpContextAccessor)
+       : IAuthService
+   {
+       public async Task<AuthResult> LoginAsync(LoginDto dto)
+       {
+           var user = await userRepository.GetByEmailAsync(dto.Email);
+           if (user is null)
+               return new AuthResult(false, "Email atau password salah.");
+
+           var verification = PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
+           if (verification == PasswordVerificationResult.Failed)
+               return new AuthResult(false, "Email atau password salah.");
+
+           var claims = new List<Claim> { /* NameIdentifier, Email, Name, Role */ };
+           var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+
+           await httpContextAccessor.HttpContext!.SignInAsync(
+               CookieAuthenticationDefaults.AuthenticationScheme, principal,
+               new AuthenticationProperties { IsPersistent = dto.RememberMe });
+
+           return new AuthResult(true);
+       }
+   }
+
+4. Repositories/Implementations/UserRepository.cs
+   using Tebing.Data;
+   using Tebing.Models;
+
+   public class UserRepository(AppDbContext context) : Repository<User>(context), IUserRepository
+   {
+       public async Task<User?> GetByEmailAsync(string email) =>
+           await DbSet.FirstOrDefaultAsync(u => u.Email == email);
+   }
+
+5. Data/AppDbContext.cs — DbSet<User> yang dipakai Repository di atas cuma:
+   public DbSet<User> Users => Set<User>();
+
+   EF Core nerjemahin `FirstOrDefaultAsync` di atas jadi `SELECT ... WHERE Email = @email`,
+   dikirim ke SQL Server lewat connection string di `appsettings.json`.
+```
+
+Balik lagi ke arah datanya (dari bawah ke atas): `User` entity (dari `Models/`) balik ke
+`AuthService`, di situ diverifikasi & dibungkus jadi cookie auth, lalu return `AuthResult`
+(bukan `User` mentah!) ke `AccountController`. Controller **gak pernah lihat** `User.PasswordHash`
+atau objek `User` sama sekali — dia cuma tau "sukses" atau "gagal + alasan". Ini contoh nyata
+kenapa `Service` gak boleh `return User` ke `Controller`: kalau iya, Controller/View jadi punya
+akses ke `PasswordHash` walau gak butuh sama sekali.
+
 ---
 
 ## 5. "Namanya beneran harus itu?"
@@ -534,3 +616,132 @@ nge-tweak properti build.
 | Nambah project baru dalam repo yang sama (misal test project) | `Tebing.sln` (biasanya otomatis lewat `dotnet sln add`) |
 | Ganti versi .NET | `Tebing.csproj` (`<TargetFramework>`) |
 | Nambah config custom (email settings, API key eksternal, dll) | `appsettings.json` (section baru) + baca lewat `builder.Configuration` di `Program.cs` |
+
+---
+
+## 7. FAQ: "Interface itu apaan?", "DTO juga blueprint?"
+
+Ini pertanyaan yang paling sering muncul begitu pindah dari "semua ditumpuk di Controller" ke
+pola berlapis kayak di project ini. Dijawab satu-satu, pakai kode `AuthService` yang udah ada
+di project (`Services/Interfaces/IAuthService.cs` & `Services/Implementations/AuthService.cs`).
+
+### Interface itu "janji", isinya cuma daftar method, bener gak?
+
+**Bener, hampir pas.** Interface itu **kontrak** — daftar method (nama, parameter, return
+type) **tanpa badan kode sama sekali**:
+
+```csharp
+// Services/Interfaces/IAuthService.cs — ISI-nya cuma "janji", gak ada logic
+public interface IAuthService
+{
+    Task<AuthResult> RegisterAsync(RegisterDto dto);
+    Task<AuthResult> LoginAsync(LoginDto dto);
+    Task LogoutAsync();
+    Task<string?> GenerateResetTokenAsync(string email);
+    Task<AuthResult> ResetPasswordAsync(ResetPasswordDto dto);
+}
+```
+
+Isinya cuma bilang: "siapa pun yang mau ngaku sebagai `IAuthService`, WAJIB punya kelima method
+ini, dengan signature persis kayak di atas." Gimana caranya method itu jalan (hash password,
+cookie, dst) — interface gak peduli dan gak tau. Itu tugas class yang **implement** dia:
+
+```csharp
+// Services/Implementations/AuthService.cs — ini yang beneran isi "cara"-nya
+public class AuthService(IUserRepository userRepository, IHttpContextAccessor httpContextAccessor)
+    : IAuthService
+{
+    public async Task<AuthResult> RegisterAsync(RegisterDto dto) { /* ...logic beneran... */ }
+    // ...4 method lain wajib ada di sini juga, kalau kelupaan satu = compiler error
+}
+```
+
+Interface **gak bisa di-`new`**. `new IAuthService()` itu **error compile** — gak ada
+"instance interface". Yang bisa di-`new` cuma class yang implement dia (`new AuthService(...)`).
+Interface itu cuma "bentuk", bukan "barang".
+
+### "Gak wajib dipanggil" — maksud lo gimana persisnya?
+
+Ini bagian yang perlu diluruskan sedikit, karena ada **dua "wajib" yang beda**:
+
+1. **Wajib buat class yang implement** — kalau `AuthService : IAuthService`, class itu **wajib**
+   punya semua 5 method di atas, gak boleh kurang satu pun. Ini dicek **compiler**, bukan
+   runtime — kalau kelupaan, project langsung gagal build.
+2. **Gak wajib buat yang manggil (caller)** — `AccountController` yang punya akses ke
+   `IAuthService` **bebas manggil method mana aja yang dia butuh**, gak harus manggil
+   kelimanya. Lihat `AccountController.cs`: action `Register` cuma manggil `RegisterAsync`,
+   action `Login` cuma manggil `LoginAsync`. Gak ada aturan "harus pakai semua method di
+   interface itu di tempat yang sama".
+
+Analogi paling gampang: interface itu kayak **daftar menu restoran**. Menu itu "janji" — restoran
+wajib bisa masakin semua yang ada di daftar itu kalau dipesan. Tapi pengunjung (caller) bebas
+pesan 1 menu doang, gak wajib pesan semua isi menu. Jadi: **wajib diimplementasikan (semua),
+bebas dipanggil (sebagian aja, sesuai kebutuhan).**
+
+### Kenapa `AccountController` gak langsung pakai `AuthService` aja? Ribet nulis interface segala.
+
+Constructor `AccountController(IAuthService authService)` minta **interface**, bukan
+`AuthService` (class asli). Tiga alasan konkret kenapa ini kepake, bukan basa-basi:
+
+1. **Testing tanpa database beneran.** Nanti kalau nulis unit test buat `AccountController`,
+   lo bisa bikin `FakeAuthService : IAuthService` yang isinya cuma pura-pura sukses/gagal, tanpa
+   nyentuh `AppDbContext`/SQL Server. `AccountController` gak akan tau bedanya, karena dia cuma
+   kenal `IAuthService` — gak peduli implementasi aslinya `AuthService` atau `FakeAuthService`.
+2. **Ganti implementasi tanpa ubah pemanggil.** Kalau suatu saat cara login berubah total
+   (misal ganti dari cookie auth ke JWT, atau nambah login via Google), yang diubah cukup isi
+   `AuthService`. `AccountController` **sama sekali gak perlu disentuh**, selama signature
+   `IAuthService` tetap sama.
+3. **Ini yang bikin Dependency Injection bisa jalan.** DI container (`Program.cs`) butuh
+   "peta": kalau ada yang minta `IAuthService`, kasih instance `AuthService`. Itu persis baris
+   ini:
+   ```csharp
+   builder.Services.AddScoped<IAuthService, AuthService>();
+   ```
+   Tanpa interface, gak ada "peta" yang bisa diganti-ganti — Controller bakal `new AuthService(...)`
+   manual di setiap tempat yang butuh, dan alasan 1 & 2 di atas jadi gak mungkin dilakuin.
+
+### DTO juga "blueprint", tapi blueprint apa?
+
+**Iya, DTO juga blueprint — tapi blueprint DATA, bukan blueprint PERILAKU.** Ini beda mendasar
+sama interface:
+
+| | Interface | DTO |
+|---|---|---|
+| Isinya | Daftar **method** (perilaku/kemampuan) | Daftar **property** (data/field) |
+| Jawab pertanyaan | "Apa yang **bisa dilakuin**?" | "Data ini **bentuknya kayak apa**?" |
+| Contoh | `IAuthService` → "bisa `RegisterAsync`, `LoginAsync`, dst" | `RegisterDto` → "punya `Email`, `FullName`, `Password`, `ConfirmPassword`" |
+| Ada logic di dalamnya? | Enggak (cuma signature) | Enggak (cuma property, murni data) |
+| Bisa di-`new`? | **Enggak** (interface gak bisa di-instansiasi) | **Bisa** (`new RegisterDto()`) — ini class biasa |
+
+```csharp
+// DTOs/Auth/RegisterDto.cs — blueprint DATA, bukan blueprint method
+public class RegisterDto
+{
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, MaxLength(100)]
+    public string FullName { get; set; } = string.Empty;
+
+    [Required, DataType(DataType.Password), MinLength(6)]
+    public string Password { get; set; } = string.Empty;
+
+    [Required, DataType(DataType.Password), Compare(nameof(Password))]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+```
+
+Bedanya lagi sama `Model` (`Models/User.cs`), yang juga "blueprint data": `Model` itu blueprint
+data buat **1 baris di tabel database** (makanya ada `PasswordHash`, `CreatedAt`, dst — kolom
+yang gak ada urusannya sama form registrasi). `DTO` itu blueprint data buat **1 kebutuhan
+transfer spesifik** antara `Controller` ↔ `Service` — makanya `RegisterDto` cuma punya 4 field
+yang beneran diisi user di form, gak ada `PasswordHash` (itu di-generate di `AuthService`, user
+gak pernah kirim hash, dia kirim password mentah).
+
+### Ringkasan satu paragraf
+
+**Interface** = janji soal **kemampuan** (method apa aja yang PASTI ada), wajib diimplementasikan
+lengkap oleh class-nya, tapi bebas dipanggil sebagian aja oleh siapa pun yang pakai. **DTO**
+= blueprint soal **bentuk data** buat 1 kebutuhan transfer, gak punya method/logic, dan beda dari
+`Model` karena `Model` itu blueprint buat tabel database sedangkan `DTO` blueprint buat lalu-lintas
+data antar layer.
