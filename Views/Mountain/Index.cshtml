@@ -1,0 +1,68 @@
+@model List<Tebing.DTOs.Mountain.MountainListDto>
+
+@{
+    ViewData["Title"] = "Daftar Gunung";
+}
+
+<h1>Daftar Gunung</h1>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (User.IsInRole("Admin"))
+{
+    <p><a asp-action="Create" class="btn btn-primary">+ Tambah Gunung</a></p>
+}
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <input type="text" name="province" value="@ViewData["Province"]" class="form-control" placeholder="Filter provinsi"/>
+    </div>
+    <div class="col-auto">
+        <select name="difficulty" class="form-select">
+            <option value="">Semua tingkat kesulitan</option>
+            @foreach (var level in Enum.GetValues<Tebing.Common.Enums.DifficultyLevel>())
+            {
+                <option value="@level" selected="@(ViewData["Difficulty"]?.ToString() == level.ToString())">@level</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <p>Belum ada data gunung.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Nama</th>
+            <th>Provinsi</th>
+            <th>Ketinggian (mdpl)</th>
+            <th>Kesulitan</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var mountain in Model)
+        {
+            <tr>
+                <td>@mountain.Name</td>
+                <td>@mountain.Province</td>
+                <td>@mountain.HeightMeters</td>
+                <td>@mountain.Difficulty</td>
+                <td>@mountain.Status</td>
+                <td><a asp-action="Detail" asp-route-id="@mountain.Id">Detail</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

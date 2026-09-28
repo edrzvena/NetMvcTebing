@@ -1,0 +1,89 @@
+@model Tebing.DTOs.Mountain.MountainDetailDto
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+<h1>@Model.Name</h1>
+<p>
+    @Model.Province &middot; @Model.HeightMeters mdpl &middot; @Model.Difficulty &middot; @Model.Status
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ImageUrl))
+{
+    <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid mb-3" style="max-height:300px"/>
+}
+
+@if (!string.IsNullOrEmpty(Model.Description))
+{
+    <p>@Model.Description</p>
+}
+
+@if (User.IsInRole("Admin"))
+{
+    <p>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">Edit Gunung</a>
+        <form asp-action="Close" asp-route-id="@Model.Id" method="post" class="d-inline"
+              onsubmit="return confirm('Tutup gunung ini dari daftar aktif?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Tutup Gunung</button>
+        </form>
+        <a asp-action="AddRoute" asp-route-mountainId="@Model.Id" class="btn btn-sm btn-primary">+ Tambah Jalur</a>
+    </p>
+}
+
+<h3>Jalur Pendakian</h3>
+@if (!Model.Routes.Any())
+{
+    <p>Belum ada jalur pendakian.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Nama Jalur</th>
+            <th>Jarak (km)</th>
+            <th>Estimasi Waktu</th>
+            <th>Kuota Harian</th>
+            <th>Status</th>
+            @if (User.IsInRole("Admin"))
+            {
+                <th></th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var route in Model.Routes)
+        {
+            <tr>
+                <td>@route.Name</td>
+                <td>@route.DistanceKm</td>
+                <td>@route.EstimatedDuration</td>
+                <td>@(route.DailyQuota?.ToString() ?? "Tanpa batas")</td>
+                <td>@(route.IsActive ? "Aktif" : "Nonaktif")</td>
+                @if (User.IsInRole("Admin"))
+                {
+                    <td>
+                        <a asp-action="EditRoute" asp-route-id="@route.Id">Edit</a>
+                        @if (route.IsActive)
+                        {
+                            <form asp-action="DeactivateRoute" asp-route-id="@route.Id" asp-route-mountainId="@Model.Id"
+                                  method="post" class="d-inline"
+                                  onsubmit="return confirm('Nonaktifkan jalur ini?');">
+                                <button type="submit" class="btn btn-link p-0 ms-2">Nonaktifkan</button>
+                            </form>
+                        }
+                    </td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+<a asp-action="Index">&larr; Kembali ke daftar gunung</a>
