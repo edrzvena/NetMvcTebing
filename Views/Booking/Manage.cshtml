@@ -1,0 +1,83 @@
+@using Tebing.Common.Enums
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model List<Tebing.DTOs.Booking.BookingListDto>
+
+@{
+    ViewData["Title"] = "Kelola Booking";
+    var mountainOptions = (List<SelectListItem>)ViewData["MountainOptions"]!;
+    var selectedStatus = ViewData["Status"] as BookingStatus?;
+    var climbDate = ViewData["ClimbDate"] as DateOnly?;
+}
+
+<h1>Kelola Booking</h1>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="mountainId" asp-items="mountainOptions" class="form-select">
+            <option value="">Semua gunung</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="status" class="form-select">
+            <option value="">Semua status</option>
+            @foreach (var status in Enum.GetValues<BookingStatus>())
+            {
+                <option value="@status" selected="@(selectedStatus == status)">@status</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <input type="date" name="climbDate" value="@climbDate?.ToString("yyyy-MM-dd")" class="form-control"/>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+        <a asp-action="Manage" class="btn btn-link">Reset</a>
+    </div>
+</form>
+
+@if (climbDate is not null)
+{
+    <p class="text-muted">
+        Total pendaki terdaftar tanggal @climbDate.Value.ToString("dd MMM yyyy") (selain Rejected/Cancelled):
+        <strong>@Model.Where(b => b.Status != BookingStatus.Rejected && b.Status != BookingStatus.Cancelled).Sum(b => b.NumberOfPeople) orang</strong>
+    </p>
+}
+
+@if (!Model.Any())
+{
+    <p>Belum ada booking yang cocok dengan filter.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Pemesan</th>
+            <th>Gunung</th>
+            <th>Jalur</th>
+            <th>Tanggal Naik</th>
+            <th>Jumlah Orang</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var booking in Model)
+        {
+            <tr>
+                <td>@booking.Id</td>
+                <td>@booking.UserFullName</td>
+                <td>@booking.MountainName</td>
+                <td>@booking.RouteName</td>
+                <td>@booking.ClimbDate.ToString("dd MMM yyyy")</td>
+                <td>@booking.NumberOfPeople</td>
+                <td>Rp @booking.TotalPrice.ToString("N0")</td>
+                <td>@booking.Status</td>
+                <td><a asp-action="Detail" asp-route-id="@booking.Id">Detail</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

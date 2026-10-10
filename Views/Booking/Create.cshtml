@@ -1,0 +1,138 @@
+@model Tebing.ViewModels.Booking.BookingCreateViewModel
+
+@{
+    ViewData["Title"] = "Booking Pendakian";
+}
+
+<h1>Booking Pendakian — @Model.MountainName</h1>
+
+<form asp-action="Create" method="post" id="booking-form">
+    <input type="hidden" asp-for="Booking.MountainId"/>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label asp-for="Booking.HikingRouteId" class="form-label"></label>
+                <select asp-for="Booking.HikingRouteId" asp-items="Model.RouteOptions" class="form-select">
+                    <option value="0">-- Pilih jalur --</option>
+                </select>
+                <span asp-validation-for="Booking.HikingRouteId" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="Booking.ClimbDate" class="form-label"></label>
+                <input asp-for="Booking.ClimbDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control"
+                       min="@DateTime.Today.ToString("yyyy-MM-dd")"/>
+                <span asp-validation-for="Booking.ClimbDate" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <h3>Peserta Rombongan</h3>
+    <p class="text-muted">Isi data tiap anggota rombongan, termasuk kamu sendiri. Jumlah orang = jumlah peserta di bawah.</p>
+    <span asp-validation-for="Booking.Participants" class="text-danger"></span>
+
+    <div id="participants">
+        @for (var i = 0; i < Model.Booking.Participants.Count; i++)
+        {
+            <div class="participant card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title mb-0">Peserta <span class="participant-number">@(i + 1)</span></h5>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-participant">Hapus</button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="Booking.Participants[i].FullName" class="form-label"></label>
+                            <input asp-for="Booking.Participants[i].FullName" class="form-control"/>
+                            <span asp-validation-for="Booking.Participants[i].FullName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="Booking.Participants[i].NIK" class="form-label"></label>
+                            <input asp-for="Booking.Participants[i].NIK" class="form-control" inputmode="numeric" maxlength="16"/>
+                            <span asp-validation-for="Booking.Participants[i].NIK" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Booking.Participants[i].PhoneNumber" class="form-label"></label>
+                            <input asp-for="Booking.Participants[i].PhoneNumber" class="form-control"/>
+                            <span asp-validation-for="Booking.Participants[i].PhoneNumber" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Booking.Participants[i].EmergencyContactName" class="form-label"></label>
+                            <input asp-for="Booking.Participants[i].EmergencyContactName" class="form-control"/>
+                            <span asp-validation-for="Booking.Participants[i].EmergencyContactName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Booking.Participants[i].EmergencyContactPhone" class="form-label"></label>
+                            <input asp-for="Booking.Participants[i].EmergencyContactPhone" class="form-control"/>
+                            <span asp-validation-for="Booking.Participants[i].EmergencyContactPhone" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <p>
+        <button type="button" id="add-participant" class="btn btn-outline-primary">+ Tambah Peserta</button>
+    </p>
+
+    <button type="submit" class="btn btn-primary">Submit Booking</button>
+    <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@Model.Booking.MountainId" class="btn btn-link">Batal</a>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        // Tambah/hapus peserta di sisi client. Index di name/id (Participants[0], Participants_0__)
+        // harus selalu urut 0..n-1 biar model binding List<ParticipantDto> di server kebaca utuh.
+        (function () {
+            const form = document.getElementById('booking-form');
+            const container = document.getElementById('participants');
+
+            function reindex() {
+                container.querySelectorAll('.participant').forEach((block, i) => {
+                    block.querySelector('.participant-number').textContent = i + 1;
+                    block.querySelectorAll('[name], [id], [for], [data-valmsg-for]').forEach(el => {
+                        ['name', 'id', 'for', 'data-valmsg-for'].forEach(attr => {
+                            const value = el.getAttribute(attr);
+                            if (value) {
+                                el.setAttribute(attr, value
+                                    .replace(/Participants\[\d+\]/, `Participants[${i}]`)
+                                    .replace(/Participants_\d+__/, `Participants_${i}__`));
+                            }
+                        });
+                    });
+                });
+
+                // Daftarin ulang validasi client-side buat field yang baru ditambah/di-rename.
+                $(form).removeData('validator').removeData('unobtrusiveValidation');
+                $.validator.unobtrusive.parse(form);
+            }
+
+            document.getElementById('add-participant').addEventListener('click', () => {
+                const clone = container.querySelector('.participant').cloneNode(true);
+                clone.querySelectorAll('input').forEach(input => {
+                    input.value = '';
+                    input.classList.remove('input-validation-error');
+                });
+                clone.querySelectorAll('[data-valmsg-for]').forEach(span => {
+                    span.textContent = '';
+                    span.classList.replace('field-validation-error', 'field-validation-valid');
+                });
+                container.appendChild(clone);
+                reindex();
+            });
+
+            container.addEventListener('click', e => {
+                if (!e.target.classList.contains('remove-participant')) return;
+                if (container.querySelectorAll('.participant').length === 1) {
+                    alert('Minimal harus ada 1 peserta.');
+                    return;
+                }
+                e.target.closest('.participant').remove();
+                reindex();
+            });
+        })();
+    </script>
+}

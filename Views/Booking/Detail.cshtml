@@ -1,0 +1,127 @@
+@using Tebing.Common.Enums
+@using System.Security.Claims
+@model Tebing.DTOs.Booking.BookingDetailDto
+
+@{
+    ViewData["Title"] = $"Booking #{Model.Id}";
+    var isOwner = User.FindFirstValue(ClaimTypes.NameIdentifier) == Model.UserId.ToString();
+    var isAdmin = User.IsInRole("Admin");
+}
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<h1>Booking #@Model.Id</h1>
+
+<dl class="row">
+    <dt class="col-sm-3">Gunung</dt>
+    <dd class="col-sm-9">
+        <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@Model.MountainId">@Model.MountainName</a>
+    </dd>
+    <dt class="col-sm-3">Jalur</dt>
+    <dd class="col-sm-9">@Model.RouteName</dd>
+    <dt class="col-sm-3">Tanggal Naik</dt>
+    <dd class="col-sm-9">@Model.ClimbDate.ToString("dd MMM yyyy")</dd>
+    <dt class="col-sm-3">Jumlah Orang</dt>
+    <dd class="col-sm-9">@Model.NumberOfPeople</dd>
+    <dt class="col-sm-3">Total Harga</dt>
+    <dd class="col-sm-9">Rp @Model.TotalPrice.ToString("N0")</dd>
+    <dt class="col-sm-3">Status</dt>
+    <dd class="col-sm-9">@Model.Status</dd>
+    @if (Model.Status == BookingStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
+    {
+        <dt class="col-sm-3">Alasan Ditolak</dt>
+        <dd class="col-sm-9">@Model.RejectionReason</dd>
+    }
+    @if (isAdmin)
+    {
+        <dt class="col-sm-3">Dipesan oleh</dt>
+        <dd class="col-sm-9">@Model.UserFullName (@Model.UserEmail)</dd>
+    }
+    <dt class="col-sm-3">Dibuat</dt>
+    <dd class="col-sm-9">@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+</dl>
+
+<h3>Peserta Rombongan</h3>
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>#</th>
+        <th>Nama</th>
+        <th>NIK</th>
+        <th>No. HP</th>
+        <th>Kontak Darurat</th>
+    </tr>
+    </thead>
+    <tbody>
+    @for (var i = 0; i < Model.Participants.Count; i++)
+    {
+        var participant = Model.Participants[i];
+        <tr>
+            <td>@(i + 1)</td>
+            <td>@participant.FullName</td>
+            <td>@participant.NIK</td>
+            <td>@participant.PhoneNumber</td>
+            <td>@participant.EmergencyContactName (@participant.EmergencyContactPhone)</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@if (isOwner && Model.Status == BookingStatus.Pending)
+{
+    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="mb-3"
+          onsubmit="return confirm('Batalkan booking ini?');">
+        <button type="submit" class="btn btn-outline-danger">Batalkan Booking</button>
+    </form>
+}
+
+@if (isAdmin && Model.AllowedNextStatuses.Any())
+{
+    <h3>Aksi Admin</h3>
+    <div class="d-flex flex-wrap gap-2 align-items-start mb-3">
+        @foreach (var nextStatus in Model.AllowedNextStatuses)
+        {
+            <form asp-action="UpdateStatus" method="post"
+                  onsubmit="return confirm('Ubah status booking jadi @nextStatus?');">
+                <input type="hidden" name="BookingId" value="@Model.Id"/>
+                <input type="hidden" name="Status" value="@nextStatus"/>
+                @if (nextStatus == BookingStatus.Rejected)
+                {
+                    <div class="input-group">
+                        <input type="text" name="RejectionReason" maxlength="500" class="form-control"
+                               placeholder="Alasan ditolak (opsional)"/>
+                        <button type="submit" class="btn btn-danger">Reject</button>
+                    </div>
+                }
+                else
+                {
+                    <button type="submit" class="btn @(nextStatus == BookingStatus.Cancelled ? "btn-outline-danger" : "btn-success")">
+                        @(nextStatus switch
+                        {
+                            BookingStatus.Approved => "Approve",
+                            BookingStatus.Completed => "Tandai Selesai",
+                            BookingStatus.Cancelled => "Batalkan",
+                            _ => nextStatus.ToString()
+                        })
+                    </button>
+                }
+            </form>
+        }
+    </div>
+}
+
+@if (isAdmin)
+{
+    <a asp-action="Manage">&larr; Kembali ke kelola booking</a>
+}
+else
+{
+    <a asp-action="MyBookings">&larr; Kembali ke booking saya</a>
+}
