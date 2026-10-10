@@ -150,6 +150,42 @@ else
     }
 }
 
+@if (Model.Review is { } review)
+{
+    <h3>Ulasan</h3>
+    <p class="mb-1">
+        <span class="text-warning">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+        <small class="text-muted ms-2">@review.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</small>
+    </p>
+    @if (!string.IsNullOrEmpty(review.Comment))
+    {
+        <p>@review.Comment</p>
+    }
+}
+else if (isOwner && Model.Status == BookingStatus.Completed)
+{
+    <h3>Kasih Ulasan</h3>
+    <form asp-controller="Review" asp-action="Create" method="post" class="mb-3" style="max-width:600px">
+        <input type="hidden" name="BookingId" value="@Model.Id"/>
+        <div class="mb-2">
+            <label for="Rating" class="form-label">Rating</label>
+            <select id="Rating" name="Rating" class="form-select" required>
+                <option value="">-- Pilih rating --</option>
+                @for (var star = 5; star >= 1; star--)
+                {
+                    <option value="@star">@(new string('★', star)) (@star)</option>
+                }
+            </select>
+        </div>
+        <div class="mb-2">
+            <label for="Comment" class="form-label">Komentar (opsional)</label>
+            <textarea id="Comment" name="Comment" maxlength="1000" rows="3" class="form-control"
+                      placeholder="Gimana jalurnya, basecamp-nya, pemandangannya?"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Kirim Ulasan</button>
+    </form>
+}
+
 @if (isOwner && Model.Status == BookingStatus.Pending)
 {
     <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="mb-3"

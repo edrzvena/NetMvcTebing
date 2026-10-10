@@ -20,4 +20,5 @@ public class Mountain
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<HikingRoute> Routes { get; set; } = new List<HikingRoute>();
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

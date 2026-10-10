@@ -1,4 +1,5 @@
 using Tebing.Common.Enums;
+using Tebing.DTOs.Review;
 
 namespace Tebing.DTOs.Mountain;
 
@@ -13,8 +14,9 @@ public class MountainDetailDto
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
 
-    // Null dulu sampai Review ada (Tahap 6).
+    // Null = belum ada review.
     public double? AverageRating { get; set; }
 
     public List<RouteDto> Routes { get; set; } = [];
+    public List<ReviewDto> Reviews { get; set; } = [];
 }

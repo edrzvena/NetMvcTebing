@@ -12,6 +12,7 @@ public class MountainListDto
     public MountainStatus Status { get; set; }
     public string? ImageUrl { get; set; }
 
-    // Null dulu sampai Review ada (Tahap 6), belum ada data buat dihitung.
+    // Null = belum ada review.
     public double? AverageRating { get; set; }
+    public int ReviewCount { get; set; }
 }

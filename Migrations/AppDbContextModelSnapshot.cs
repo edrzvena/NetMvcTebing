@@ -232,6 +232,48 @@ namespace Tebing.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("Tebing.Models.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MountainId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("MountainId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Reviews", t =>
+                        {
+                            t.HasCheckConstraint("CK_Reviews_Rating", "[Rating] BETWEEN 1 AND 5");
+                        });
+                });
+
             modelBuilder.Entity("Tebing.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -331,15 +373,46 @@ namespace Tebing.Migrations
                     b.Navigation("Booking");
                 });
 
+            modelBuilder.Entity("Tebing.Models.Review", b =>
+                {
+                    b.HasOne("Tebing.Models.Booking", "Booking")
+                        .WithOne("Review")
+                        .HasForeignKey("Tebing.Models.Review", "BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Tebing.Models.Mountain", "Mountain")
+                        .WithMany("Reviews")
+                        .HasForeignKey("MountainId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tebing.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Mountain");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Tebing.Models.Booking", b =>
                 {
                     b.Navigation("Participants");
 
                     b.Navigation("Payment");
+
+                    b.Navigation("Review");
                 });
 
             modelBuilder.Entity("Tebing.Models.Mountain", b =>
                 {
+                    b.Navigation("Reviews");
+
                     b.Navigation("Routes");
                 });
 #pragma warning restore 612, 618

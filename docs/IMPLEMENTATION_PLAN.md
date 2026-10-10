@@ -15,8 +15,10 @@ Sudah selesai:
   & admin (migration `AddBookingAndParticipant`, sekalian nambah `HikingRoute.PricePerPerson`).
 - **Tahap 5** — `Payment`: upload bukti transfer (disimpan privat di luar `wwwroot`), verifikasi
   admin otomatis approve booking (migration `AddPayment`).
+- **Tahap 6** — `Review`: rating 1–5 + komentar dari booking `Completed`, rata-rata rating tampil
+  di daftar & detail gunung (migration `AddReview`).
 
-Belum: Tahap 6 (Review), seed data (`Data/Seed/`), dan Tahap 7 opsional.
+MVP (Tahap 1–6) beres. Belum: seed data (`Data/Seed/`) dan Tahap 7 opsional.
 
 ## 1. Struktur Folder yang Disarankan
 
@@ -451,27 +453,48 @@ public class Review
     public User User { get; set; } = null!;
     public int MountainId { get; set; }
     public Mountain Mountain { get; set; } = null!;
-    public int BookingId { get; set; }              // bukti pernah booking & completed
+    public int BookingId { get; set; }              // unique — bukti pernah booking & completed
     public Booking Booking { get; set; } = null!;
 
-    public int Rating { get; set; }                  // 1-5
-    public string? Comment { get; set; }
+    public int Rating { get; set; }                  // 1-5 (+ check constraint di DB)
+    public string? Comment { get; set; }             // max 1000
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 ```
 
+Navigasi baru: `Mountain.Reviews`, `Booking.Review` (one-to-one).
+
+**EF config (`Data/Configurations/ReviewConfiguration.cs`):** FK ke User & Mountain `Restrict`
+(alasannya sama kayak Booking: hindari multiple cascade path Mountain → Booking → Review dan
+Mountain → Review), ke Booking `Cascade`. Unique index `BookingId` dari relasi one-to-one, plus
+check constraint `CK_Reviews_Rating` (`[Rating] BETWEEN 1 AND 5`) biar aturan rating juga dijaga di DB.
+
 **DTOs (`DTOs/Review/`):**
-- `ReviewCreateDto` — BookingId, Rating, Comment
-- `ReviewDto` — UserFullName, Rating, Comment, CreatedAt (buat ditampilkan di detail gunung)
+- `ReviewCreateDto` — BookingId, Rating (`[Range(1, 5)]`), Comment (max 1000)
+- `ReviewDto` — UserFullName, Rating, Comment, CreatedAt. Dipakai di `MountainDetailDto.Reviews`
+  dan `BookingDetailDto.Review`.
+- `MountainListDto` dapet `AverageRating` + `ReviewCount`, `MountainDetailDto` dapet `AverageRating`
+  + `List<ReviewDto> Reviews`.
 
-**Business rule:** cuma bisa create review kalau `Booking.Status == Completed`,
-`Booking.UserId == current user`, dan belum pernah review buat booking itu (unique constraint
-`BookingId` di tabel Review, 1 review per booking).
+**Business rule (`ReviewService`):** cuma bisa create review kalau `Booking.UserId == current user`,
+`Booking.Status == Completed`, dan belum pernah review buat booking itu (`ExistsForBookingAsync`,
+dijaga juga sama unique index). `MountainId` diambil dari booking, bukan dari input user.
 
-**Repository:** `IReviewRepository` — `AddAsync`, `GetByMountainIdAsync`, `ExistsForBookingAsync`
-(buat cek 1 review per booking).
+**Repository:** `IReviewRepository` — `GetByMountainIdAsync` (include User, terbaru dulu),
+`ExistsForBookingAsync`, `GetRatingSummariesAsync(mountainIds)` → `Dictionary<int, RatingSummary>`
+(rata-rata & jumlah review per gunung dalam 1 query `GROUP BY`, biar halaman daftar gunung gak N+1).
+`IBookingRepository.GetByIdWithDetailsAsync` sekarang ikut `Include(b => b.Review)`.
 
-**Service:** `IReviewService` — Create, GetByMountain (buat halaman detail gunung + hitung average rating).
+**Service:**
+- `IReviewService` — cuma `CreateAsync(userId, dto)`.
+- Baca review + hitung rating ditaruh di **`MountainService`** (inject `IReviewRepository`), bukan
+  `IReviewService.GetByMountain` kayak rencana awal. Daftar & detail gunung jadi tetap 1 panggilan
+  service, dan rating di halaman daftar bisa diambil sekaligus buat semua gunung.
+
+**Controller:** `ReviewController` (class-level `[Authorize]`, gak punya halaman sendiri): `Create`
+(POST). Form-nya muncul di `Booking/Detail` kalau booking `Completed`, milik user, dan belum direview.
+Review yang udah dikirim tampil di `Booking/Detail` & `Mountain/Detail` (bagian "Ulasan Pendaki").
+Daftar gunung dapet kolom "Rating".
 
 **Migration:** `Add-Migration AddReview`.
 
@@ -537,6 +560,8 @@ dan gampang di-review satu-satu.
 - Tahap 5: bukti transfer disimpan privat (`App_Data/`, di luar `wwwroot`), bukan di
   `wwwroot/uploads/` kayak rencana awal. File statis di `wwwroot` bisa dibuka siapa aja tanpa login.
   Field-nya jadi `PaymentProofPath` (nama file), bukan `PaymentProofUrl`.
+- Tahap 6: query review & rating ada di `MountainService` (lewat `IReviewRepository`), `IReviewService`
+  cuma buat create. Rating di daftar gunung dihitung pakai 1 query `GROUP BY` (`GetRatingSummariesAsync`).
 - Tahap 5: `FileStorageHelper` di `Helpers/` belum dibikin. Logic simpan file cuma dipakai
   `PaymentService`, jadi sesuai aturan folder `Helpers/` (minimal dipakai >1 tempat), sementara
   ditaruh di service dulu.

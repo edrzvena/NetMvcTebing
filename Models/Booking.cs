@@ -30,4 +30,5 @@ public class Booking
 
     public ICollection<BookingParticipant> Participants { get; set; } = new List<BookingParticipant>();
     public Payment? Payment { get; set; }
+    public Review? Review { get; set; }
 }

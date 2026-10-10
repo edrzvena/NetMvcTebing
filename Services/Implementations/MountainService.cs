@@ -7,19 +7,40 @@ using Tebing.Services.Interfaces;
 
 namespace Tebing.Services.Implementations;
 
-public class MountainService(IMountainRepository mountainRepository, IHikingRouteRepository routeRepository)
-    : IMountainService
+public class MountainService(
+    IMountainRepository mountainRepository,
+    IHikingRouteRepository routeRepository,
+    IReviewRepository reviewRepository) : IMountainService
 {
     public async Task<List<MountainListDto>> GetAllAsync(string? province = null, DifficultyLevel? difficulty = null)
     {
         var mountains = await mountainRepository.GetFilteredAsync(province, difficulty);
-        return mountains.Select(m => m.ToListDto()).ToList();
+        var ratings = await reviewRepository.GetRatingSummariesAsync(mountains.Select(m => m.Id));
+
+        return mountains.Select(m =>
+        {
+            var dto = m.ToListDto();
+            if (ratings.TryGetValue(m.Id, out var rating))
+            {
+                dto.AverageRating = rating.AverageRating;
+                dto.ReviewCount = rating.ReviewCount;
+            }
+
+            return dto;
+        }).ToList();
     }
 
     public async Task<MountainDetailDto?> GetByIdAsync(int id)
     {
         var mountain = await mountainRepository.GetByIdWithRoutesAsync(id);
-        return mountain?.ToDetailDto();
+        if (mountain is null)
+            return null;
+
+        var dto = mountain.ToDetailDto();
+        var reviews = await reviewRepository.GetByMountainIdAsync(id);
+        dto.Reviews = reviews.Select(r => r.ToDto()).ToList();
+        dto.AverageRating = reviews.Count > 0 ? reviews.Average(r => r.Rating) : null;
+        return dto;
     }
 
     public async Task<int> CreateAsync(MountainCreateDto dto)

@@ -1,5 +1,6 @@
 using Tebing.DTOs.Booking;
 using Tebing.DTOs.Payment;
+using Tebing.DTOs.Review;
 using Tebing.Models;
 
 namespace Tebing.Mappings;
@@ -37,7 +38,17 @@ public static class BookingMappings
         RejectionReason = booking.RejectionReason,
         CreatedAt = booking.CreatedAt,
         Participants = booking.Participants.Select(p => p.ToDto()).ToList(),
-        Payment = booking.Payment?.ToDto()
+        Payment = booking.Payment?.ToDto(),
+        // Review booking pasti punya user yang sama dengan booking-nya, jadi nama diambil dari booking.User.
+        Review = booking.Review is { } review
+            ? new ReviewDto
+            {
+                UserFullName = booking.User.FullName,
+                Rating = review.Rating,
+                Comment = review.Comment,
+                CreatedAt = review.CreatedAt
+            }
+            : null
     };
 
     public static PaymentDto ToDto(this Payment payment) => new()

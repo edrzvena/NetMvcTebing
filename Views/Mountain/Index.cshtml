@@ -48,6 +48,7 @@ else
             <th>Ketinggian (mdpl)</th>
             <th>Kesulitan</th>
             <th>Status</th>
+            <th>Rating</th>
             <th></th>
         </tr>
         </thead>
@@ -60,6 +61,7 @@ else
                 <td>@mountain.HeightMeters</td>
                 <td>@mountain.Difficulty</td>
                 <td>@mountain.Status</td>
+                <td>@(mountain.AverageRating is { } rating ? $"★ {rating:0.0} ({mountain.ReviewCount})" : "-")</td>
                 <td><a asp-action="Detail" asp-route-id="@mountain.Id">Detail</a></td>
             </tr>
         }

@@ -16,6 +16,7 @@
 <h1>@Model.Name</h1>
 <p>
     @Model.Province &middot; @Model.HeightMeters mdpl &middot; @Model.Difficulty &middot; @Model.Status
+    &middot; @(Model.AverageRating is { } rating ? $"★ {rating:0.0} ({Model.Reviews.Count} ulasan)" : "Belum ada ulasan")
 </p>
 
 @if (!string.IsNullOrEmpty(Model.ImageUrl))
@@ -99,6 +100,27 @@ else
         }
         </tbody>
     </table>
+}
+
+<h3>Ulasan Pendaki</h3>
+@if (!Model.Reviews.Any())
+{
+    <p>Belum ada ulasan. Ulasan cuma bisa dikasih pendaki yang udah selesai naik lewat Tebing.</p>
+}
+else
+{
+    @foreach (var review in Model.Reviews)
+    {
+        <div class="border-bottom pb-2 mb-3">
+            <strong>@review.UserFullName</strong>
+            <span class="text-warning ms-2">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+            <small class="text-muted ms-2">@review.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</small>
+            @if (!string.IsNullOrEmpty(review.Comment))
+            {
+                <p class="mb-0 mt-1">@review.Comment</p>
+            }
+        </div>
+    }
 }
 
 <a asp-action="Index">&larr; Kembali ke daftar gunung</a>

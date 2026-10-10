@@ -1,5 +1,6 @@
 using Tebing.Common.Enums;
 using Tebing.DTOs.Payment;
+using Tebing.DTOs.Review;
 
 namespace Tebing.DTOs.Booking;
 
@@ -29,4 +30,7 @@ public class BookingDetailDto
 
     // Null = belum upload bukti transfer.
     public PaymentDto? Payment { get; set; }
+
+    // Null = belum kasih review (cuma bisa setelah Completed).
+    public ReviewDto? Review { get; set; }
 }
