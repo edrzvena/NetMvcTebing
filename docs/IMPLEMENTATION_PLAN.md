@@ -18,7 +18,12 @@ Sudah selesai:
 - **Tahap 6** — `Review`: rating 1–5 + komentar dari booking `Completed`, rata-rata rating tampil
   di daftar & detail gunung (migration `AddReview`).
 
-MVP (Tahap 1–6) beres. Belum: seed data (`Data/Seed/`) dan Tahap 7 opsional.
+- **Seed data** — `Data/Seed/DbSeeder.cs`, jalan otomatis pas app start di Development: 6 gunung
+  contoh beserta jalurnya (1 gunung sengaja `Closed`), cuma kalau tabel `Mountains` masih kosong.
+  Akun gak di-seed, pakai akun yang udah ada. Kalau masih ada migration pending, seed dilewati
+  (cuma log warning).
+
+MVP (Tahap 1–6) + seed data beres. Belum: Tahap 7 opsional.
 
 ## 1. Struktur Folder yang Disarankan
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore; // library ef core, orm nya .NET
 using Tebing.Data;
+using Tebing.Data.Seed;
 using Tebing.Repositories.Implementations;
 using Tebing.Repositories.Interfaces;
 using Tebing.Services.Implementations;
@@ -54,6 +55,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 var app = builder.Build();
+
+// Data contoh (akun admin/pendaki + gunung) — cuma di Development, lihat Data/Seed/DbSeeder.cs.
+if (app.Environment.IsDevelopment())
+    await DbSeeder.SeedAsync(app.Services);
 
 // Monitoring Grafana
 app.UseSerilogRequestLogging();
