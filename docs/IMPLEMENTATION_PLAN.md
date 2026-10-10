@@ -18,8 +18,9 @@ Sudah selesai:
 - **Tahap 6** — `Review`: rating 1–5 + komentar dari booking `Completed`, rata-rata rating tampil
   di daftar & detail gunung (migration `AddReview`).
 
-- **Seed data** — `Data/Seed/DbSeeder.cs`, jalan otomatis pas app start di Development: 6 gunung
-  contoh beserta jalurnya (1 gunung sengaja `Closed`), cuma kalau tabel `Mountains` masih kosong.
+- **Seed data** — `Data/Seed/DbSeeder.cs`, jalan otomatis pas app start di Development: 46 gunung
+  contoh se-Indonesia beserta jalurnya (beberapa gunung api aktif sengaja `Closed`). Dicek per nama
+  gunung, jadi cuma yang belum ada yang ditambah, dan nambah gunung baru ke list langsung ikut ke-seed.
   Akun gak di-seed, pakai akun yang udah ada. Kalau masih ada migration pending, seed dilewati
   (cuma log warning).
 
