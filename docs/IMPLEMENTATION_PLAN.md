@@ -13,8 +13,10 @@ Sudah selesai:
   (migration `AddMountainAndRoute`).
 - **Tahap 4** — `Booking` + `BookingParticipant`, cek kuota, state machine status, halaman pendaki
   & admin (migration `AddBookingAndParticipant`, sekalian nambah `HikingRoute.PricePerPerson`).
+- **Tahap 5** — `Payment`: upload bukti transfer (disimpan privat di luar `wwwroot`), verifikasi
+  admin otomatis approve booking (migration `AddPayment`).
 
-Belum: Tahap 5 (Payment), Tahap 6 (Review), seed data (`Data/Seed/`), dan Tahap 7 opsional.
+Belum: Tahap 6 (Review), seed data (`Data/Seed/`), dan Tahap 7 opsional.
 
 ## 1. Struktur Folder yang Disarankan
 
@@ -342,6 +344,8 @@ buat query cek kuota. `AppDbContext.OnModelCreating` pakai `ApplyConfigurationsF
 
    `Completed` baru boleh diset mulai tanggal `ClimbDate`. Pendaki cuma boleh batalin booking
    miliknya sendiri yang masih `Pending`. Yang `Approved` dibatalin lewat admin.
+   Tabel transisinya ada di `Common/BookingStatusFlow.cs` (static, dipakai bareng
+   `BookingService` & `PaymentService`, dipindah ke sini pas Tahap 5).
 
 **Repository:** `IBookingRepository` — `GetByIdWithDetailsAsync` (include User, Mountain,
 HikingRoute, Participants), `GetByUserIdAsync`, `GetFilteredAsync(mountainId, status, climbDate)`
@@ -361,8 +365,8 @@ pakai `record BookingResult(bool Success, string? Error, int? BookingId)`, polan
 Navbar dapet link "Booking Saya" (login) & "Kelola Booking" (admin).
 
 **Catatan:** di MVP belum ada relasi "gunung milik admin X", jadi admin lihat semua booking
-(bisa difilter per gunung). Admin juga masih approve booking langsung. Mulai Tahap 5, approve
-idealnya lewat verifikasi pembayaran.
+(bisa difilter per gunung). Sejak Tahap 5, booking berbayar cuma bisa jadi `Approved` lewat
+verifikasi pembayaran. Approve manual cuma buat booking gratis (`TotalPrice == 0`).
 
 **Known limitation:** cek kuota belum aman dari race condition. 2 submit barengan di jalur &
 tanggal yang sama bisa lolos dua-duanya dan bikin total ngelewatin kuota. Masih oke buat MVP.
@@ -380,31 +384,56 @@ Kalau mau rapet, bungkus cek + insert dalam transaction `Serializable`.
 public class Payment
 {
     public int Id { get; set; }
-    public int BookingId { get; set; }
+    public int BookingId { get; set; }              // unique — 1 booking maksimal 1 payment
     public Booking Booking { get; set; } = null!;
 
-    public decimal Amount { get; set; }
-    public string PaymentProofUrl { get; set; } = string.Empty;
+    public decimal Amount { get; set; }              // decimal(14,2), diambil dari Booking.TotalPrice
+    public string PaymentProofPath { get; set; } = string.Empty; // nama file GUID, bukan URL publik
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
+    public string? RejectionReason { get; set; }     // max 500, diisi kalau ditolak admin
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     public DateTime? VerifiedAt { get; set; }
 }
 ```
 
+Relasi one-to-one `Booking.Payment` ↔ `Payment.Booking` di `Data/Configurations/PaymentConfiguration.cs`
+(cascade ikut `Booking`).
+
 **DTOs (`DTOs/Payment/`):**
-- `PaymentUploadDto` — BookingId, file bukti transfer (`IFormFile`), Amount
-- `PaymentVerifyDto` — Status (Verified/Rejected)
+- `PaymentUploadDto` — BookingId, `IFormFile ProofFile`. **Gak ada `Amount`**, nominal diambil dari
+  `Booking.TotalPrice` di server, jangan percaya input client.
+- `PaymentVerifyDto` — BookingId, Status (`Verified`/`Rejected`), RejectionReason (opsional)
+- `PaymentDto` — Amount, Status, RejectionReason, UploadedAt, VerifiedAt (ditempel ke
+  `BookingDetailDto.Payment`; `BookingListDto` cuma dapet `PaymentStatus`)
 
-**Repository:** `IPaymentRepository` — `AddAsync`, `GetByBookingIdAsync`.
+**Repository:** `IPaymentRepository` — `GetByBookingIdAsync` (include `Booking`, karena verifikasi
+sekalian ngubah status booking). `IBookingRepository` sekarang ikut `Include(b => b.Payment)`.
 
-**Service:** `IPaymentService` — Upload (simpan file ke `wwwroot/uploads/payments/` atau storage
-lain, buat record Payment), Verify (admin, kalau `Verified` → set `Booking.Status = Approved`
-lewat `IBookingRepository`). `Amount` bisa diambil dari `Booking.TotalPrice`. Transisi
-`Pending → Approved` tetap harus lolos state machine di `BookingService`, dan pertimbangkan
-nyembunyiin tombol "Approve" manual di halaman admin begitu alur payment jalan.
+**Service:** `IPaymentService`:
+- `UploadAsync(userId, dto)` — cuma pemilik booking, booking harus `Pending`, `TotalPrice > 0`,
+  payment belum `Verified`. Kalau sebelumnya udah ada payment (ditolak / salah file), record yang
+  sama dipakai ulang: status balik `Pending`, file lama dihapus.
+- `VerifyAsync(dto)` — admin, payment harus `Pending`. `Verified` → `VerifiedAt` diisi +
+  `Booking.Status = Approved` (dicek lewat `BookingStatusFlow.CanTransition`). `Rejected` →
+  booking tetap `Pending`, pendaki bisa upload ulang. Payment & Booking disimpan 1x `SaveChanges`
+  (1 transaksi).
+- `GetProofAsync(bookingId, userId, isAdmin)` — path file + content type, cuma buat pemilik/admin.
 
-**Catatan keamanan:** validasi tipe & ukuran file upload (jpg/png/pdf, max misal 2MB), jangan
-simpan file langsung pakai nama asli dari user (rawan path traversal) — generate nama unik
-(GUID) sebelum disimpan.
+**Controller:** `PaymentController` (class-level `[Authorize]`, gak punya halaman sendiri, semua
+form-nya ada di `Booking/Detail`): `Upload` (POST), `Proof` (GET, stream file), `Verify` (POST, admin).
+Daftar booking (Booking Saya & Kelola Booking) dapet kolom "Pembayaran".
+
+**Catatan keamanan (sudah diterapin):**
+- File disimpan di `App_Data/uploads/payments/` (**di luar `wwwroot`**, masuk `.gitignore`), cuma
+  bisa dibuka lewat `Payment/Proof` yang ngecek pemilik/admin. Bukti transfer ada data rekening,
+  jadi jangan sampai bisa diakses siapa aja yang tau URL-nya.
+- Nama file di disk selalu GUID + ekstensi, nama asli dari user gak pernah dipakai (anti path traversal).
+- Validasi ekstensi (jpg/jpeg/png/pdf) **plus magic bytes** awal file, jadi file `.exe` yang
+  di-rename `.jpg` tetap ketolak. Maks 2 MB (`Constants/FileUploadSettings.cs`). Batas body request
+  sengaja lebih longgar (10 MB) biar file yang kegedean dikit dapet pesan rapi, bukan error 413 mentah.
+
+**Belum ada:** info rekening tujuan transfer di halaman booking (bisa ditaruh di `appsettings.json`
++ options pattern kalau dibutuhkan).
 
 **Migration:** `Add-Migration AddPayment`.
 
@@ -469,7 +498,7 @@ Kalau MVP di atas udah jalan, baru pertimbangkan:
 | `HikingRoute` | `IHikingRouteRepository` | `RouteDto`, `RouteCreateDto` |
 | `Booking` | `IBookingRepository` | `BookingCreateDto`, `BookingListDto`, `BookingDetailDto`, `BookingStatusUpdateDto` (+ `BookingCreateViewModel`) |
 | `BookingParticipant` | *(lewat `IBookingRepository`)* | `ParticipantDto` |
-| `Payment` | `IPaymentRepository` | `PaymentUploadDto`, `PaymentVerifyDto` |
+| `Payment` | `IPaymentRepository` | `PaymentUploadDto`, `PaymentVerifyDto`, `PaymentDto` |
 | `Review` | `IReviewRepository` | `ReviewCreateDto`, `ReviewDto` |
 
 ## Urutan Pengerjaan Disarankan
@@ -505,3 +534,9 @@ dan gampang di-review satu-satu.
   tarif SIMAKSI bisa beda tiap jalur. `Booking.TotalPrice` jadi snapshot, jadi kalau admin ubah
   harga jalur nanti, booking lama gak ikut berubah.
 - Tahap 4: alasan reject disimpan di `Booking.RejectionReason` (bukan tabel terpisah), cukup buat MVP.
+- Tahap 5: bukti transfer disimpan privat (`App_Data/`, di luar `wwwroot`), bukan di
+  `wwwroot/uploads/` kayak rencana awal. File statis di `wwwroot` bisa dibuka siapa aja tanpa login.
+  Field-nya jadi `PaymentProofPath` (nama file), bukan `PaymentProofUrl`.
+- Tahap 5: `FileStorageHelper` di `Helpers/` belum dibikin. Logic simpan file cuma dipakai
+  `PaymentService`, jadi sesuai aturan folder `Helpers/` (minimal dipakai >1 tempat), sementara
+  ditaruh di service dulu.

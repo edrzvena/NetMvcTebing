@@ -29,4 +29,5 @@ public class Booking
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<BookingParticipant> Participants { get; set; } = new List<BookingParticipant>();
+    public Payment? Payment { get; set; }
 }

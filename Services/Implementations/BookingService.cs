@@ -1,3 +1,4 @@
+using Tebing.Common;
 using Tebing.Common.Enums;
 using Tebing.DTOs.Booking;
 using Tebing.Mappings;
@@ -12,17 +13,6 @@ public class BookingService(
     IMountainRepository mountainRepository,
     IHikingRouteRepository routeRepository) : IBookingService
 {
-    // State machine status booking — perubahan status cuma boleh lewat jalur yang ada di sini.
-    // Rejected/Completed/Cancelled = status akhir, gak bisa diubah lagi.
-    private static readonly Dictionary<BookingStatus, BookingStatus[]> AllowedTransitions = new()
-    {
-        [BookingStatus.Pending] = [BookingStatus.Approved, BookingStatus.Rejected, BookingStatus.Cancelled],
-        [BookingStatus.Approved] = [BookingStatus.Completed, BookingStatus.Cancelled],
-        [BookingStatus.Rejected] = [],
-        [BookingStatus.Completed] = [],
-        [BookingStatus.Cancelled] = []
-    };
-
     public async Task<BookingResult> CreateAsync(int userId, BookingCreateDto dto)
     {
         var route = await routeRepository.GetByIdAsync(dto.HikingRouteId);
@@ -90,7 +80,9 @@ public class BookingService(
             return null;
 
         var dto = booking.ToDetailDto();
-        dto.AllowedNextStatuses = AllowedTransitions[booking.Status].ToList();
+        dto.AllowedNextStatuses = BookingStatusFlow.NextStatuses(booking.Status)
+            .Where(status => status != BookingStatus.Approved || !RequiresPayment(booking))
+            .ToList();
         return dto;
     }
 
@@ -109,8 +101,11 @@ public class BookingService(
         if (booking is null)
             return new BookingResult(false, "Booking tidak ditemukan.");
 
-        if (!AllowedTransitions[booking.Status].Contains(dto.Status))
+        if (!BookingStatusFlow.CanTransition(booking.Status, dto.Status))
             return new BookingResult(false, $"Status booking tidak bisa diubah dari {booking.Status} ke {dto.Status}.");
+
+        if (dto.Status == BookingStatus.Approved && RequiresPayment(booking))
+            return new BookingResult(false, "Booking berbayar di-approve lewat verifikasi pembayaran.");
 
         if (dto.Status == BookingStatus.Completed && booking.ClimbDate > DateOnly.FromDateTime(DateTime.Today))
             return new BookingResult(false, "Booking baru bisa diselesaikan mulai tanggal pendakiannya.");
@@ -141,4 +136,7 @@ public class BookingService(
 
         return new BookingResult(true, BookingId: booking.Id);
     }
+
+    // Booking gratis (harga jalur 0) gak perlu upload bukti transfer, jadi boleh di-approve manual.
+    private static bool RequiresPayment(Booking booking) => booking.TotalPrice > 0;
 }

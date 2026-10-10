@@ -1,4 +1,5 @@
 using Tebing.Common.Enums;
+using Tebing.DTOs.Payment;
 
 namespace Tebing.DTOs.Booking;
 
@@ -22,8 +23,10 @@ public class BookingDetailDto
 
     public List<ParticipantDto> Participants { get; set; } = [];
 
-    // Status tujuan yang valid dari status sekarang (buat nampilin tombol aksi admin).
+    // Status yang boleh diset admin secara manual dari status sekarang (buat nampilin tombol aksi admin).
+    // Approved gak termasuk kalau booking berbayar — itu lewat verifikasi pembayaran.
     public List<BookingStatus> AllowedNextStatuses { get; set; } = [];
 
-    // Info payment nyusul di Tahap 5.
+    // Null = belum upload bukti transfer.
+    public PaymentDto? Payment { get; set; }
 }

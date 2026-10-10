@@ -14,12 +14,14 @@ public class BookingRepository(AppDbContext context) : Repository<Booking>(conte
             .Include(b => b.Mountain)
             .Include(b => b.HikingRoute)
             .Include(b => b.Participants)
+            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == id);
 
     public async Task<List<Booking>> GetByUserIdAsync(int userId) =>
         await DbSet
             .Include(b => b.Mountain)
             .Include(b => b.HikingRoute)
+            .Include(b => b.Payment)
             .Where(b => b.UserId == userId)
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync();
@@ -30,6 +32,7 @@ public class BookingRepository(AppDbContext context) : Repository<Booking>(conte
             .Include(b => b.User)
             .Include(b => b.Mountain)
             .Include(b => b.HikingRoute)
+            .Include(b => b.Payment)
             .AsQueryable();
 
         if (mountainId is not null)

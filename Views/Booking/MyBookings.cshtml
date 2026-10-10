@@ -26,6 +26,7 @@ else
             <th>Jumlah Orang</th>
             <th>Total</th>
             <th>Status</th>
+            <th>Pembayaran</th>
             <th></th>
         </tr>
         </thead>
@@ -39,6 +40,7 @@ else
                 <td>@booking.NumberOfPeople</td>
                 <td>Rp @booking.TotalPrice.ToString("N0")</td>
                 <td>@booking.Status</td>
+                <td>@(booking.TotalPrice <= 0 ? "Gratis" : booking.PaymentStatus?.ToString() ?? "Belum upload")</td>
                 <td><a asp-action="Detail" asp-route-id="@booking.Id">Detail</a></td>
             </tr>
         }

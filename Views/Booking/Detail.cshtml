@@ -74,6 +74,82 @@
     </tbody>
 </table>
 
+<h3>Pembayaran</h3>
+@if (Model.TotalPrice <= 0)
+{
+    <p>Booking ini gratis, gak perlu upload bukti transfer.</p>
+}
+else
+{
+    @if (Model.Payment is null)
+    {
+        <p>Belum ada bukti transfer.</p>
+    }
+    else
+    {
+        <dl class="row">
+            <dt class="col-sm-3">Status Pembayaran</dt>
+            <dd class="col-sm-9">@Model.Payment.Status</dd>
+            <dt class="col-sm-3">Jumlah</dt>
+            <dd class="col-sm-9">Rp @Model.Payment.Amount.ToString("N0")</dd>
+            <dt class="col-sm-3">Diupload</dt>
+            <dd class="col-sm-9">@Model.Payment.UploadedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+            @if (Model.Payment.VerifiedAt is { } verifiedAt)
+            {
+                <dt class="col-sm-3">Diverifikasi</dt>
+                <dd class="col-sm-9">@verifiedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+            }
+            @if (Model.Payment.Status == PaymentStatus.Rejected && !string.IsNullOrEmpty(Model.Payment.RejectionReason))
+            {
+                <dt class="col-sm-3">Alasan Ditolak</dt>
+                <dd class="col-sm-9">@Model.Payment.RejectionReason</dd>
+            }
+            <dt class="col-sm-3">Bukti Transfer</dt>
+            <dd class="col-sm-9">
+                <a asp-controller="Payment" asp-action="Proof" asp-route-bookingId="@Model.Id" target="_blank">Lihat file</a>
+            </dd>
+        </dl>
+    }
+
+    @* Aturan lengkapnya dicek ulang di PaymentService; ini cuma biar form-nya gak muncul kalau udah pasti ditolak. *@
+    @if (isOwner && Model.Status == BookingStatus.Pending && Model.Payment?.Status != PaymentStatus.Verified)
+    {
+        <form asp-controller="Payment" asp-action="Upload" method="post" enctype="multipart/form-data" class="mb-3">
+            <input type="hidden" name="BookingId" value="@Model.Id"/>
+            <label for="ProofFile" class="form-label">
+                @(Model.Payment is null ? "Upload bukti transfer" : "Upload ulang bukti transfer")
+                (Rp @Model.TotalPrice.ToString("N0") — JPG, PNG, atau PDF, maks. 2 MB)
+            </label>
+            <div class="input-group" style="max-width:500px">
+                <input type="file" id="ProofFile" name="ProofFile" accept=".jpg,.jpeg,.png,.pdf" class="form-control" required/>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </div>
+        </form>
+    }
+
+    @if (isAdmin && Model.Payment?.Status == PaymentStatus.Pending)
+    {
+        <div class="d-flex flex-wrap gap-2 align-items-start mb-3">
+            <form asp-controller="Payment" asp-action="Verify" method="post"
+                  onsubmit="return confirm('Verifikasi pembayaran ini? Booking otomatis jadi Approved.');">
+                <input type="hidden" name="BookingId" value="@Model.Id"/>
+                <input type="hidden" name="Status" value="@PaymentStatus.Verified"/>
+                <button type="submit" class="btn btn-success">Verifikasi Pembayaran</button>
+            </form>
+            <form asp-controller="Payment" asp-action="Verify" method="post"
+                  onsubmit="return confirm('Tolak bukti pembayaran ini?');">
+                <input type="hidden" name="BookingId" value="@Model.Id"/>
+                <input type="hidden" name="Status" value="@PaymentStatus.Rejected"/>
+                <div class="input-group">
+                    <input type="text" name="RejectionReason" maxlength="500" class="form-control"
+                           placeholder="Alasan ditolak (opsional)"/>
+                    <button type="submit" class="btn btn-outline-danger">Tolak Pembayaran</button>
+                </div>
+            </form>
+        </div>
+    }
+}
+
 @if (isOwner && Model.Status == BookingStatus.Pending)
 {
     <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="mb-3"

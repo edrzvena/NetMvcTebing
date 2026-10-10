@@ -13,6 +13,9 @@ public class BookingListDto
     public BookingStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // Null = belum upload bukti transfer.
+    public PaymentStatus? PaymentStatus { get; set; }
+
     // Cuma diisi di daftar booking versi admin (biar tau siapa yang booking).
     public string? UserFullName { get; set; }
 }

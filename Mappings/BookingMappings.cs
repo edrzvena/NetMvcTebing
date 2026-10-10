@@ -1,4 +1,5 @@
 using Tebing.DTOs.Booking;
+using Tebing.DTOs.Payment;
 using Tebing.Models;
 
 namespace Tebing.Mappings;
@@ -15,6 +16,7 @@ public static class BookingMappings
         TotalPrice = booking.TotalPrice,
         Status = booking.Status,
         CreatedAt = booking.CreatedAt,
+        PaymentStatus = booking.Payment?.Status,
         // User cuma di-Include di query admin, di "riwayat booking saya" sengaja dibiarkan null.
         UserFullName = booking.User?.FullName
     };
@@ -34,7 +36,17 @@ public static class BookingMappings
         Status = booking.Status,
         RejectionReason = booking.RejectionReason,
         CreatedAt = booking.CreatedAt,
-        Participants = booking.Participants.Select(p => p.ToDto()).ToList()
+        Participants = booking.Participants.Select(p => p.ToDto()).ToList(),
+        Payment = booking.Payment?.ToDto()
+    };
+
+    public static PaymentDto ToDto(this Payment payment) => new()
+    {
+        Amount = payment.Amount,
+        Status = payment.Status,
+        RejectionReason = payment.RejectionReason,
+        UploadedAt = payment.UploadedAt,
+        VerifiedAt = payment.VerifiedAt
     };
 
     public static ParticipantDto ToDto(this BookingParticipant participant) => new()

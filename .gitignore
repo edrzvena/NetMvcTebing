@@ -70,3 +70,6 @@ Thumbs.db
 # Local secrets / environment overrides (jangan pernah commit ini)
 appsettings.*.local.json
 *.env
+
+# Upload file user (bukti transfer, dst) — jangan ikut ke-commit
+App_Data/

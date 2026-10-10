@@ -192,6 +192,46 @@ namespace Tebing.Migrations
                     b.ToTable("Mountains");
                 });
 
+            modelBuilder.Entity("Tebing.Models.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentProofPath")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.ToTable("Payments");
+                });
+
             modelBuilder.Entity("Tebing.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -280,9 +320,22 @@ namespace Tebing.Migrations
                     b.Navigation("Mountain");
                 });
 
+            modelBuilder.Entity("Tebing.Models.Payment", b =>
+                {
+                    b.HasOne("Tebing.Models.Booking", "Booking")
+                        .WithOne("Payment")
+                        .HasForeignKey("Tebing.Models.Payment", "BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+                });
+
             modelBuilder.Entity("Tebing.Models.Booking", b =>
                 {
                     b.Navigation("Participants");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("Tebing.Models.Mountain", b =>
