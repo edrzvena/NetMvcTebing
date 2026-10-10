@@ -8,5 +8,6 @@ public class RouteDto
     public decimal DistanceKm { get; set; }
     public string? EstimatedDuration { get; set; }
     public int? DailyQuota { get; set; }
+    public decimal PricePerPerson { get; set; }
     public bool IsActive { get; set; }
 }

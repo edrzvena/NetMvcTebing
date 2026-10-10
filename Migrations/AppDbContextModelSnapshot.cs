@@ -22,6 +22,96 @@ namespace Tebing.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Tebing.Models.Booking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("ClimbDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("HikingRouteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MountainId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NumberOfPeople")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MountainId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("HikingRouteId", "ClimbDate");
+
+                    b.ToTable("Bookings");
+                });
+
+            modelBuilder.Entity("Tebing.Models.BookingParticipant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmergencyContactName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EmergencyContactPhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NIK")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.ToTable("BookingParticipants");
+                });
+
             modelBuilder.Entity("Tebing.Models.HikingRoute", b =>
                 {
                     b.Property<int>("Id")
@@ -50,6 +140,9 @@ namespace Tebing.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("PricePerPerson")
+                        .HasColumnType("decimal(12,2)");
 
                     b.HasKey("Id");
 
@@ -138,6 +231,44 @@ namespace Tebing.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Tebing.Models.Booking", b =>
+                {
+                    b.HasOne("Tebing.Models.HikingRoute", "HikingRoute")
+                        .WithMany()
+                        .HasForeignKey("HikingRouteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tebing.Models.Mountain", "Mountain")
+                        .WithMany()
+                        .HasForeignKey("MountainId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tebing.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("HikingRoute");
+
+                    b.Navigation("Mountain");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Tebing.Models.BookingParticipant", b =>
+                {
+                    b.HasOne("Tebing.Models.Booking", "Booking")
+                        .WithMany("Participants")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+                });
+
             modelBuilder.Entity("Tebing.Models.HikingRoute", b =>
                 {
                     b.HasOne("Tebing.Models.Mountain", "Mountain")
@@ -147,6 +278,11 @@ namespace Tebing.Migrations
                         .IsRequired();
 
                     b.Navigation("Mountain");
+                });
+
+            modelBuilder.Entity("Tebing.Models.Booking", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("Tebing.Models.Mountain", b =>

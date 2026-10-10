@@ -94,7 +94,8 @@ public class MountainService(IMountainRepository mountainRepository, IHikingRout
             Name = dto.Name,
             DistanceKm = dto.DistanceKm,
             EstimatedDuration = dto.EstimatedDuration,
-            DailyQuota = dto.DailyQuota
+            DailyQuota = dto.DailyQuota,
+            PricePerPerson = dto.PricePerPerson
         };
 
         await routeRepository.AddAsync(route);
@@ -113,6 +114,7 @@ public class MountainService(IMountainRepository mountainRepository, IHikingRout
         route.DistanceKm = dto.DistanceKm;
         route.EstimatedDuration = dto.EstimatedDuration;
         route.DailyQuota = dto.DailyQuota;
+        route.PricePerPerson = dto.PricePerPerson;
 
         routeRepository.Update(route);
         await routeRepository.SaveChangesAsync();

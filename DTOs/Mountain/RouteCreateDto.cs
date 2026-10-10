@@ -15,4 +15,6 @@ public class RouteCreateDto
 
     [Range(1, int.MaxValue, ErrorMessage = "Kuota harus lebih dari 0, atau kosongkan kalau tanpa batas.")]
     public int? DailyQuota { get; set; }
+
+    [Range(0, 100_000_000)] public decimal PricePerPerson { get; set; }
 }

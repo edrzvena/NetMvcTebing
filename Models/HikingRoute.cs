@@ -19,5 +19,8 @@ public class HikingRoute
     // null = tanpa batas kuota
     public int? DailyQuota { get; set; }
 
+    // Harga tiket/SIMAKSI per orang, dipakai buat hitung Booking.TotalPrice di server.
+    [Column(TypeName = "decimal(12,2)")] public decimal PricePerPerson { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

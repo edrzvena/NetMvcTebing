@@ -5,14 +5,16 @@ tiap tahap harus bisa jalan (build & migrate sukses) sebelum lanjut ke tahap ber
 
 ## 0. Status Saat Ini
 
-Sudah ada:
-- `Models/User.cs` — Id, Email, FullName, PasswordHash, ResetPasswordToken, PasswordResetTokenExpireAt, CreatedAt.
-- `Data/AppDbContext.cs` — cuma `DbSet<User> Users`.
-- Koneksi ke SQL Server (`DefaultConnection`) sudah di-wire di `Program.cs`.
-- Migration `Initial` sudah ada.
-- Folder `ViewModels/` sudah dibikin (masih kosong).
+Sudah selesai:
+- **Setup Awal** — repository pattern (`IRepository<T>` + repository per entity).
+- **Tahap 1** — enum di `Common/Enums/` + `User.Role` (migration `AddUserRole`).
+- **Tahap 2** — autentikasi cookie: register, login, logout, forgot/reset password (`AccountController`).
+- **Tahap 3** — `Mountain` + `HikingRoute` CRUD, admin di-guard `[Authorize(Roles = "Admin")]`
+  (migration `AddMountainAndRoute`).
+- **Tahap 4** — `Booking` + `BookingParticipant`, cek kuota, state machine status, halaman pendaki
+  & admin (migration `AddBookingAndParticipant`, sekalian nambah `HikingRoute.PricePerPerson`).
 
-Belum ada: authentication flow, authorization/role, dan semua domain model inti (Mountain, Route, Booking, dst).
+Belum: Tahap 5 (Payment), Tahap 6 (Review), seed data (`Data/Seed/`), dan Tahap 7 opsional.
 
 ## 1. Struktur Folder yang Disarankan
 
@@ -88,7 +90,7 @@ DTO tanpa nilai tambah.
 
 ---
 
-## Setup Awal — Repository Pattern & Switchable Provider (SQL Server ↔ PostgreSQL)
+## Setup Awal — Repository Pattern (SQL Server)
 
 Kerjain ini duluan, sebelum Tahap 1, karena semua tahap fitur setelahnya bakal bikin
 `IXxxRepository` juga (bukan cuma Service langsung ke `AppDbContext`).
@@ -233,9 +235,14 @@ public class HikingRoute
     public decimal DistanceKm { get; set; }
     public string? EstimatedDuration { get; set; }  // "2 hari 1 malam"
     public int? DailyQuota { get; set; }             // null = tanpa batas kuota
+    public decimal PricePerPerson { get; set; }      // decimal(12,2), ditambah di Tahap 4
     public bool IsActive { get; set; } = true;
 }
 ```
+
+> `PricePerPerson` baru ditambah pas Tahap 4 (lewat migration `AddBookingAndParticipant`),
+> karena `Booking.TotalPrice` butuh harga per orang. Ikut masuk ke `RouteDto`, `RouteCreateDto`,
+> form tambah/edit jalur, dan tabel jalur di detail gunung.
 
 **DTOs (`DTOs/Mountain/`):**
 - `MountainListDto` — Id, Name, Province, HeightMeters, Difficulty, Status, ImageUrl, AverageRating
@@ -276,11 +283,12 @@ public class Booking
     public DateOnly ClimbDate { get; set; }
     public int NumberOfPeople { get; set; }
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
-    public decimal TotalPrice { get; set; }
+    public decimal TotalPrice { get; set; }          // snapshot harga saat booking dibuat
+    public string? RejectionReason { get; set; }     // max 500, cuma diisi kalau Rejected
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<BookingParticipant> Participants { get; set; } = new List<BookingParticipant>();
-    public Payment? Payment { get; set; }
+    public Payment? Payment { get; set; }            // ditambah di Tahap 5
 }
 
 public class BookingParticipant
@@ -303,25 +311,64 @@ public class BookingParticipant
 - `ParticipantDto` — FullName, NIK, PhoneNumber, EmergencyContactName, EmergencyContactPhone
 - `BookingListDto` — Id, MountainName, RouteName, ClimbDate, Status, NumberOfPeople (buat "riwayat booking saya")
 - `BookingDetailDto` — semua di atas + `List<ParticipantDto>` + info payment
-- `BookingStatusUpdateDto` — Status, (opsional) alasan reject — dipakai admin
+- `BookingStatusUpdateDto` — BookingId, Status, RejectionReason (opsional) — dipakai admin
+
+**ViewModel:** `ViewModels/Booking/BookingCreateViewModel` = `BookingCreateDto Booking` +
+`MountainName` + `List<SelectListItem> RouteOptions` (jalur aktif aja). Booking dimulai dari
+tombol "Booking Pendakian" di detail gunung, jadi gunungnya udah fix dan cuma jalur yang dipilih.
+
+**EF config (`Data/Configurations/BookingConfiguration.cs`):** FK `Booking` → User/Mountain/HikingRoute
+pakai `DeleteBehavior.Restrict`. SQL Server nolak multiple cascade path
+(Mountain → HikingRoute → Booking dan Mountain → Booking), dan histori booking memang gak boleh
+ikut kehapus. `BookingParticipant` tetap cascade ikut `Booking`. Ada index `(HikingRouteId, ClimbDate)`
+buat query cek kuota. `AppDbContext.OnModelCreating` pakai `ApplyConfigurationsFromAssembly`.
 
 **Business rule penting (taruh di `BookingService`, bukan di Controller):**
-1. Validasi `Participants.Count == NumberOfPeople`.
-2. Kalau `HikingRoute.DailyQuota` diisi, hitung total `NumberOfPeople` dari booking lain
+1. `NumberOfPeople` = `Participants.Count` (gak diinput terpisah), minimal 1, NIK gak boleh
+   dobel dalam 1 rombongan.
+2. Jalur harus aktif & milik gunung yang dipilih, gunung harus `Open`, `ClimbDate` gak boleh
+   sebelum hari ini.
+3. Kalau `HikingRoute.DailyQuota` diisi, hitung total `NumberOfPeople` dari booking lain
    (status bukan `Rejected`/`Cancelled`) di tanggal & jalur yang sama, cek nggak melebihi kuota.
-3. `TotalPrice` dihitung server-side (misal harga per orang × jumlah orang), jangan percaya
-   angka dari client.
+4. `TotalPrice = HikingRoute.PricePerPerson × NumberOfPeople`, dihitung server-side, jangan
+   percaya angka dari client.
+5. Perubahan status lewat state machine (`AllowedTransitions` di `BookingService`):
 
-**Repository:** `IBookingRepository` — `AddAsync`, `GetByIdAsync` (with include Participants +
-Payment), `GetByUserIdAsync`, `GetPendingCountByRouteAndDateAsync` (buat cek kuota, pakai
-`IHikingRouteRepository` buat ambil `DailyQuota`-nya).
+   | Dari | Boleh ke |
+   |---|---|
+   | `Pending` | `Approved`, `Rejected`, `Cancelled` |
+   | `Approved` | `Completed`, `Cancelled` |
+   | `Rejected` / `Completed` / `Cancelled` | — (status akhir) |
 
-**Service:** `IBookingService` — Create, GetByUser, GetById, GetAllForAdmin (filter by mountain
-milik admin itu), UpdateStatus.
+   `Completed` baru boleh diset mulai tanggal `ClimbDate`. Pendaki cuma boleh batalin booking
+   miliknya sendiri yang masih `Pending`. Yang `Approved` dibatalin lewat admin.
 
-**Controller:** `BookingController` (user: Create/MyBookings/Detail), admin actions guard role.
+**Repository:** `IBookingRepository` — `GetByIdWithDetailsAsync` (include User, Mountain,
+HikingRoute, Participants), `GetByUserIdAsync`, `GetFilteredAsync(mountainId, status, climbDate)`
+(buat admin), `GetBookedPeopleCountAsync(hikingRouteId, climbDate)` (buat cek kuota, `DailyQuota`-nya
+diambil lewat `IHikingRouteRepository`).
 
-**Migration:** `Add-Migration AddBookingAndParticipant`.
+**Service:** `IBookingService` — `CreateAsync(userId, dto)`, `GetByUserAsync`, `GetByIdAsync`
+(sekalian isi `AllowedNextStatuses` buat tombol aksi admin), `GetAllForAdminAsync`
+(filter gunung/status/tanggal), `UpdateStatusAsync`, `CancelByUserAsync`. Hasil create/update
+pakai `record BookingResult(bool Success, string? Error, int? BookingId)`, polanya sama kayak `AuthResult`.
+
+**Controller:** `BookingController` (class-level `[Authorize]`):
+- Pendaki: `Create` (GET+POST, tambah/hapus peserta pakai JS), `MyBookings`, `Detail`, `Cancel`.
+  `Detail` booking orang lain → `NotFound` (bukan `Forbid`), biar gak bocor info ID booking mana yang ada.
+- Admin (`[Authorize(Roles = "Admin")]`): `Manage` (filter + total pendaki per tanggal), `UpdateStatus`.
+
+Navbar dapet link "Booking Saya" (login) & "Kelola Booking" (admin).
+
+**Catatan:** di MVP belum ada relasi "gunung milik admin X", jadi admin lihat semua booking
+(bisa difilter per gunung). Admin juga masih approve booking langsung. Mulai Tahap 5, approve
+idealnya lewat verifikasi pembayaran.
+
+**Known limitation:** cek kuota belum aman dari race condition. 2 submit barengan di jalur &
+tanggal yang sama bisa lolos dua-duanya dan bikin total ngelewatin kuota. Masih oke buat MVP.
+Kalau mau rapet, bungkus cek + insert dalam transaction `Serializable`.
+
+**Migration:** `Add-Migration AddBookingAndParticipant` (termasuk kolom `HikingRoutes.PricePerPerson`).
 
 ---
 
@@ -351,7 +398,9 @@ public class Payment
 
 **Service:** `IPaymentService` — Upload (simpan file ke `wwwroot/uploads/payments/` atau storage
 lain, buat record Payment), Verify (admin, kalau `Verified` → set `Booking.Status = Approved`
-lewat `IBookingRepository`).
+lewat `IBookingRepository`). `Amount` bisa diambil dari `Booking.TotalPrice`. Transisi
+`Pending → Approved` tetap harus lolos state machine di `BookingService`, dan pertimbangkan
+nyembunyiin tombol "Approve" manual di halaman admin begitu alur payment jalan.
 
 **Catatan keamanan:** validasi tipe & ukuran file upload (jpg/png/pdf, max misal 2MB), jangan
 simpan file langsung pakai nama asli dari user (rawan path traversal) — generate nama unik
@@ -418,7 +467,7 @@ Kalau MVP di atas udah jalan, baru pertimbangkan:
 | `User` (+`Role`) | `IUserRepository` | `RegisterDto`, `LoginDto`, `ForgotPasswordDto`, `ResetPasswordDto` |
 | `Mountain` | `IMountainRepository` | `MountainListDto`, `MountainDetailDto`, `MountainCreateDto`, `MountainUpdateDto` |
 | `HikingRoute` | `IHikingRouteRepository` | `RouteDto`, `RouteCreateDto` |
-| `Booking` | `IBookingRepository` | `BookingCreateDto`, `BookingListDto`, `BookingDetailDto`, `BookingStatusUpdateDto` |
+| `Booking` | `IBookingRepository` | `BookingCreateDto`, `BookingListDto`, `BookingDetailDto`, `BookingStatusUpdateDto` (+ `BookingCreateViewModel`) |
 | `BookingParticipant` | *(lewat `IBookingRepository`)* | `ParticipantDto` |
 | `Payment` | `IPaymentRepository` | `PaymentUploadDto`, `PaymentVerifyDto` |
 | `Review` | `IReviewRepository` | `ReviewCreateDto`, `ReviewDto` |
@@ -452,3 +501,7 @@ dan gampang di-review satu-satu.
   [Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0 — NuGet Gallery](https://www.nuget.org/packages/Npgsql.EntityFrameworkCore.PostgreSQL/).
 - Repository pattern tetap dipertahankan meskipun cuma 1 database — alasannya murni kerapihan
   (Service gak nyentuh `AppDbContext` langsung) & testability, bukan kebutuhan teknis provider.
+- Tahap 4: harga disimpan per jalur (`HikingRoute.PricePerPerson`), bukan per gunung, karena
+  tarif SIMAKSI bisa beda tiap jalur. `Booking.TotalPrice` jadi snapshot, jadi kalau admin ubah
+  harga jalur nanti, booking lama gak ikut berubah.
+- Tahap 4: alasan reject disimpan di `Booking.RejectionReason` (bukan tabel terpisah), cukup buat MVP.

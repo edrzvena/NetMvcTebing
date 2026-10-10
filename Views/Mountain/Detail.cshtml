@@ -8,6 +8,10 @@
 {
     <div class="alert alert-success">@successMessage</div>
 }
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
 
 <h1>@Model.Name</h1>
 <p>
@@ -36,6 +40,15 @@
     </p>
 }
 
+@if (Model.Status == Tebing.Common.Enums.MountainStatus.Open && Model.Routes.Any(r => r.IsActive))
+{
+    <p>
+        <a asp-controller="Booking" asp-action="Create" asp-route-mountainId="@Model.Id" class="btn btn-success">
+            Booking Pendakian
+        </a>
+    </p>
+}
+
 <h3>Jalur Pendakian</h3>
 @if (!Model.Routes.Any())
 {
@@ -50,6 +63,7 @@ else
             <th>Jarak (km)</th>
             <th>Estimasi Waktu</th>
             <th>Kuota Harian</th>
+            <th>Harga/Orang</th>
             <th>Status</th>
             @if (User.IsInRole("Admin"))
             {
@@ -65,6 +79,7 @@ else
                 <td>@route.DistanceKm</td>
                 <td>@route.EstimatedDuration</td>
                 <td>@(route.DailyQuota?.ToString() ?? "Tanpa batas")</td>
+                <td>Rp @route.PricePerPerson.ToString("N0")</td>
                 <td>@(route.IsActive ? "Aktif" : "Nonaktif")</td>
                 @if (User.IsInRole("Admin"))
                 {

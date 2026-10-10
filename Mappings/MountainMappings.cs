@@ -37,6 +37,7 @@ public static class MountainMappings
         DistanceKm = route.DistanceKm,
         EstimatedDuration = route.EstimatedDuration,
         DailyQuota = route.DailyQuota,
+        PricePerPerson = route.PricePerPerson,
         IsActive = route.IsActive
     };
 }

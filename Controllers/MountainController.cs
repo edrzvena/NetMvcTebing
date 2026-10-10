@@ -130,7 +130,8 @@ public class MountainController(IMountainService mountainService) : Controller
             Name = route.Name,
             DistanceKm = route.DistanceKm,
             EstimatedDuration = route.EstimatedDuration,
-            DailyQuota = route.DailyQuota
+            DailyQuota = route.DailyQuota,
+            PricePerPerson = route.PricePerPerson
         });
     }
 

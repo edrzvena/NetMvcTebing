@@ -6,7 +6,22 @@ using Tebing.Repositories.Interfaces;
 using Tebing.Services.Implementations;
 using Tebing.Services.Interfaces;
 
+// Monitoring Grafana
+using Serilog;
+using Serilog.Sinks.Grafana.Loki;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Monitoring Grafana
+builder.Host.UseSerilog((context, config) => config
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.GrafanaLoki(
+        "http://localhost:3100",
+        labels: new[]
+        {
+            new LokiLabel { Key = "app", Value = "tebing" }
+        }));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -20,9 +35,11 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMountainRepository, MountainRepository>();
 builder.Services.AddScoped<IHikingRouteRepository, HikingRouteRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMountainService, MountainService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -33,6 +50,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 var app = builder.Build();
+
+// Monitoring Grafana
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
