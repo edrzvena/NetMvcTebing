@@ -48,6 +48,22 @@ public class BookingRepository(AppDbContext context) : Repository<Booking>(conte
         return await query.OrderBy(b => b.ClimbDate).ThenBy(b => b.CreatedAt).ToListAsync();
     }
 
+    public async Task<Dictionary<BookingStatus, int>> GetStatusCountsAsync(int? mountainId, DateOnly? climbDate)
+    {
+        var query = DbSet.AsQueryable();
+
+        if (mountainId is not null)
+            query = query.Where(b => b.MountainId == mountainId);
+
+        if (climbDate is not null)
+            query = query.Where(b => b.ClimbDate == climbDate);
+
+        return await query
+            .GroupBy(b => b.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status, x => x.Count);
+    }
+
     public async Task<int> GetBookedPeopleCountAsync(int hikingRouteId, DateOnly climbDate) =>
         await DbSet
             .Where(b => b.HikingRouteId == hikingRouteId && b.ClimbDate == climbDate &&

@@ -12,9 +12,10 @@ public class MountainService(
     IHikingRouteRepository routeRepository,
     IReviewRepository reviewRepository) : IMountainService
 {
-    public async Task<List<MountainListDto>> GetAllAsync(string? province = null, DifficultyLevel? difficulty = null)
+    public async Task<List<MountainListDto>> GetAllAsync(string? search = null, string? province = null,
+        DifficultyLevel? difficulty = null)
     {
-        var mountains = await mountainRepository.GetFilteredAsync(province, difficulty);
+        var mountains = await mountainRepository.GetFilteredAsync(search, province, difficulty);
         var ratings = await reviewRepository.GetRatingSummariesAsync(mountains.Select(m => m.Id));
 
         return mountains.Select(m =>
@@ -29,6 +30,20 @@ public class MountainService(
             return dto;
         }).ToList();
     }
+
+    public async Task<List<MountainListDto>> GetTopRatedAsync(int count)
+    {
+        var mountains = await GetAllAsync();
+        return mountains
+            .Where(m => m.Status == MountainStatus.Open)
+            .OrderByDescending(m => m.AverageRating ?? 0)
+            .ThenByDescending(m => m.ReviewCount)
+            .ThenBy(m => m.Name)
+            .Take(count)
+            .ToList();
+    }
+
+    public Task<List<string>> GetProvincesAsync() => mountainRepository.GetProvincesAsync();
 
     public async Task<MountainDetailDto?> GetByIdAsync(int id)
     {

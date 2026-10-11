@@ -71,6 +71,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// 404 (NotFound()) dkk dirender pakai halaman Tebing, bukan halaman kosong browser.
+app.UseStatusCodePagesWithReExecute("/Home/HttpStatus", "?code={0}");
+
 app.UseHttpsRedirection();
 app.UseRouting();
 

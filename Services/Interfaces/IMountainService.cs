@@ -5,7 +5,14 @@ namespace Tebing.Services.Interfaces;
 
 public interface IMountainService
 {
-    Task<List<MountainListDto>> GetAllAsync(string? province = null, DifficultyLevel? difficulty = null);
+    Task<List<MountainListDto>> GetAllAsync(string? search = null, string? province = null,
+        DifficultyLevel? difficulty = null);
+
+    // Buat halaman Home: gunung Open dengan rating tertinggi, sisanya diisi gunung Open lain
+    // kalau yang punya rating kurang dari `count`.
+    Task<List<MountainListDto>> GetTopRatedAsync(int count);
+
+    Task<List<string>> GetProvincesAsync();
     Task<MountainDetailDto?> GetByIdAsync(int id);
     Task<int> CreateAsync(MountainCreateDto dto);
     Task<bool> UpdateAsync(MountainUpdateDto dto);

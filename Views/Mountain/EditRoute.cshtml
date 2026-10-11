@@ -1,43 +1,72 @@
 @model Tebing.DTOs.Mountain.RouteCreateDto
 
 @{
-    ViewData["Title"] = "Edit Jalur Pendakian";
+    ViewData["Title"] = "Edit Jalur";
 }
 
-<h1>Edit Jalur Pendakian</h1>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small mb-2">
+        <li class="breadcrumb-item"><a asp-action="Index">Gunung</a></li>
+        <li class="breadcrumb-item"><a asp-action="Detail" asp-route-id="@Model.MountainId">@ViewData["MountainName"]</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit Jalur</li>
+    </ol>
+</nav>
 
-<div class="row">
-    <div class="col-md-6">
+<div class="page-header">
+    <h1 class="mb-0">Edit Jalur</h1>
+</div>
+
+<div class="card form-narrow">
+    <div class="card-body p-3 p-lg-4">
         <form asp-action="EditRoute" method="post">
             <input type="hidden" asp-for="Id"/>
             <input type="hidden" asp-for="MountainId"/>
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group mb-3">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3">
                 <label asp-for="Name" class="form-label"></label>
-                <input asp-for="Name" class="form-control"/>
-                <span asp-validation-for="Name" class="text-danger"></span>
+                <input asp-for="Name" class="form-control" placeholder="misal: Via Cibodas"/>
+                <span asp-validation-for="Name" class="text-danger small"></span>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="DistanceKm" class="form-label"></label>
-                <input asp-for="DistanceKm" class="form-control"/>
-                <span asp-validation-for="DistanceKm" class="text-danger"></span>
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <label asp-for="DistanceKm" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="DistanceKm" class="form-control" inputmode="decimal"/>
+                        <span class="input-group-text">km</span>
+                    </div>
+                    <span asp-validation-for="DistanceKm" class="text-danger small"></span>
+                </div>
+                <div class="col-sm-6">
+                    <label asp-for="EstimatedDuration" class="form-label">Estimasi waktu <span class="text-secondary">(opsional)</span></label>
+                    <input asp-for="EstimatedDuration" class="form-control" placeholder="misal: 2 hari 1 malam"/>
+                    <span asp-validation-for="EstimatedDuration" class="text-danger small"></span>
+                </div>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="EstimatedDuration" class="form-label"></label>
-                <input asp-for="EstimatedDuration" class="form-control" placeholder="misal: 2 hari 1 malam"/>
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6">
+                    <label asp-for="DailyQuota" class="form-label">Kuota harian <span class="text-secondary">(opsional)</span></label>
+                    <div class="input-group">
+                        <input asp-for="DailyQuota" class="form-control" inputmode="numeric" aria-describedby="quota-help"/>
+                        <span class="input-group-text">orang/hari</span>
+                    </div>
+                    <div id="quota-help" class="form-text">Kosongkan kalau tanpa batas.</div>
+                    <span asp-validation-for="DailyQuota" class="text-danger small"></span>
+                </div>
+                <div class="col-sm-6">
+                    <label asp-for="PricePerPerson" class="form-label"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input asp-for="PricePerPerson" asp-format="{0:0}" class="form-control" inputmode="numeric" aria-describedby="price-help"/>
+                    </div>
+                    <div id="price-help" class="form-text">Isi 0 kalau gratis.</div>
+                    <span asp-validation-for="PricePerPerson" class="text-danger small"></span>
+                </div>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="DailyQuota" class="form-label"></label>
-                <input asp-for="DailyQuota" class="form-control" placeholder="Kosongkan kalau tanpa batas"/>
-                <span asp-validation-for="DailyQuota" class="text-danger"></span>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Simpan Jalur</button>
+                <a asp-action="Detail" asp-route-id="@Model.MountainId" class="btn btn-link">Batal</a>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="PricePerPerson" class="form-label">Harga per Orang (Rp)</label>
-                <input asp-for="PricePerPerson" class="form-control"/>
-                <span asp-validation-for="PricePerPerson" class="text-danger"></span>
-            </div>
-            <button type="submit" class="btn btn-primary">Simpan</button>
-            <a asp-action="Detail" asp-route-id="@Model.MountainId" class="btn btn-link">Batal</a>
         </form>
     </div>
 </div>

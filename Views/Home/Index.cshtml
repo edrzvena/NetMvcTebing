@@ -1,8 +1,54 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model List<Tebing.DTOs.Mountain.MountainListDto>
+
+@{
+    ViewData["Title"] = "Booking Pendakian Gunung";
+    var hasRating = Model.Any(m => m.AverageRating is not null);
+    var steps = new[]
+    {
+        ("Pilih gunung & jalur", "Cek jalur, kuota harian, dan harga tiket per orang."),
+        ("Isi data rombongan", "Masukin data tiap peserta, termasuk kontak darurat."),
+        ("Upload bukti bayar", "Transfer, upload buktinya, admin yang verifikasi."),
+        ("Naik & kasih ulasan", "Setelah turun, bagi pengalamanmu buat pendaki lain.")
+    };
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="mb-5 pt-2 intro-block">
+    <h1 class="mb-2">Booking pendakian gunung, tanpa antre di basecamp.</h1>
+    <p class="text-secondary mb-4">Cek kuota, isi data rombongan, bayar, dan pantau status booking dari satu tempat.</p>
+    <form asp-controller="Mountain" asp-action="Index" method="get" class="d-flex gap-2" role="search">
+        <label for="home-search" class="visually-hidden">Cari gunung</label>
+        <input type="search" id="home-search" name="search" class="form-control" placeholder="Cari nama gunung atau provinsi…"/>
+        <button type="submit" class="btn btn-primary">Cari</button>
+    </form>
+</section>
+
+<section class="mb-5">
+    <h2 class="mb-3">Cara kerjanya</h2>
+    <ol class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 list-unstyled mb-0">
+        @for (var i = 0; i < steps.Length; i++)
+        {
+            <li class="col">
+                <p class="fw-semibold mb-1"><span class="text-primary tabular-nums me-1">@(i + 1)</span> @steps[i].Item1</p>
+                <p class="small text-secondary mb-0">@steps[i].Item2</p>
+            </li>
+        }
+    </ol>
+</section>
+
+@if (Model.Any())
+{
+    <section>
+        <div class="d-flex justify-content-between align-items-baseline gap-2 mb-3">
+            <h2 class="mb-0">@(hasRating ? "Gunung dengan rating tertinggi" : "Gunung yang bisa dibooking")</h2>
+            <a asp-controller="Mountain" asp-action="Index" class="text-nowrap">Lihat semua &rarr;</a>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            @foreach (var mountain in Model)
+            {
+                <div class="col">
+                    <partial name="/Views/Mountain/_MountainCard.cshtml" model="mountain"/>
+                </div>
+            }
+        </div>
+    </section>
+}

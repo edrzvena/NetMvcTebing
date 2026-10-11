@@ -5,13 +5,13 @@ namespace Tebing.DTOs.Mountain;
 
 public class MountainCreateDto
 {
-    [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
-    [Required, MaxLength(100)] public string Province { get; set; } = string.Empty;
+    [Required, MaxLength(100), Display(Name = "Nama Gunung")] public string Name { get; set; } = string.Empty;
+    [Required, MaxLength(100), Display(Name = "Provinsi")] public string Province { get; set; } = string.Empty;
 
-    [Range(1, 10000)] public int HeightMeters { get; set; }
-    public DifficultyLevel Difficulty { get; set; }
-    public MountainStatus Status { get; set; } = MountainStatus.Open;
+    [Range(1, 10000), Display(Name = "Ketinggian")] public int HeightMeters { get; set; }
+    [Display(Name = "Tingkat Kesulitan")] public DifficultyLevel Difficulty { get; set; }
+    [Display(Name = "Status")] public MountainStatus Status { get; set; } = MountainStatus.Open;
 
-    public string? Description { get; set; }
-    public string? ImageUrl { get; set; }
+    [Display(Name = "Deskripsi")] public string? Description { get; set; }
+    [Display(Name = "URL Gambar")] public string? ImageUrl { get; set; }
 }

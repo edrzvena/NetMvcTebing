@@ -2,5 +2,7 @@
     ViewData["Title"] = "Akses Ditolak";
 }
 
-<h1>Akses Ditolak</h1>
-<p>Kamu tidak punya izin untuk mengakses halaman ini.</p>
+<div class="form-narrow mx-auto mt-4">
+    <partial name="_EmptyState" model="@(new EmptyStateViewModel("Akses ditolak",
+        "Akun kamu gak punya izin buat buka halaman ini.", "Kembali ke Beranda", Url.Action("Index", "Home")))"/>
+</div>

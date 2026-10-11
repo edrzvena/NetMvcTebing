@@ -15,4 +15,8 @@ public class MountainListDto
     // Null = belum ada review.
     public double? AverageRating { get; set; }
     public int ReviewCount { get; set; }
+
+    // Cuma jalur aktif yang dihitung. MinPricePerPerson null = belum ada jalur aktif.
+    public int RouteCount { get; set; }
+    public decimal? MinPricePerPerson { get; set; }
 }

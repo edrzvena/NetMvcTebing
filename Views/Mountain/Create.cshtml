@@ -2,50 +2,95 @@
 
 @{
     ViewData["Title"] = "Tambah Gunung";
+    var provinces = (List<string>)ViewData["Provinces"]!;
 }
 
-<h1>Tambah Gunung</h1>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small mb-2">
+        <li class="breadcrumb-item"><a asp-action="Index">Gunung</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Tambah Gunung</li>
+    </ol>
+</nav>
 
-<div class="row">
-    <div class="col-md-6">
+<div class="page-header">
+    <h1 class="mb-0">Tambah Gunung</h1>
+</div>
+
+<div class="card form-narrow">
+    <div class="card-body p-3 p-lg-4">
         <form asp-action="Create" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group mb-3">
-                <label asp-for="Name" class="form-label"></label>
-                <input asp-for="Name" class="form-control"/>
-                <span asp-validation-for="Name" class="text-danger"></span>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <section class="mb-4">
+                <h2 class="h3 border-bottom pb-2 mb-3">Info dasar</h2>
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="misal: Gunung Gede"/>
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Province" class="form-label"></label>
+                    <input asp-for="Province" class="form-control" list="province-options"/>
+                    <span asp-validation-for="Province" class="text-danger small"></span>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label asp-for="HeightMeters" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="HeightMeters" class="form-control" inputmode="numeric"/>
+                            <span class="input-group-text">mdpl</span>
+                        </div>
+                        <span asp-validation-for="HeightMeters" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="Difficulty" class="form-label"></label>
+                        <select asp-for="Difficulty" class="form-select">
+                            @foreach (var level in Enum.GetValues<DifficultyLevel>())
+                            {
+                                <option value="@level">@level.ToLabel()</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-4">
+                <h2 class="h3 border-bottom pb-2 mb-3">Detail</h2>
+                <div class="mb-3">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" aria-describedby="status-help">
+                        @foreach (var status in Enum.GetValues<MountainStatus>())
+                        {
+                            <option value="@status">@status.ToLabel()</option>
+                        }
+                    </select>
+                    <div id="status-help" class="form-text">Gunung yang ditutup tetap tampil di daftar, tapi gak bisa dibooking.</div>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Deskripsi <span class="text-secondary">(opsional)</span></label>
+                    <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="ImageUrl" class="form-label">URL gambar <span class="text-secondary">(opsional)</span></label>
+                    <input asp-for="ImageUrl" class="form-control" aria-describedby="image-help"/>
+                    <div id="image-help" class="form-text">Tampil di halaman detail gunung dengan rasio 16:9.</div>
+                </div>
+            </section>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Simpan Gunung</button>
+                <a asp-action="Index" class="btn btn-link">Batal</a>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Province" class="form-label"></label>
-                <input asp-for="Province" class="form-control"/>
-                <span asp-validation-for="Province" class="text-danger"></span>
-            </div>
-            <div class="form-group mb-3">
-                <label asp-for="HeightMeters" class="form-label"></label>
-                <input asp-for="HeightMeters" class="form-control"/>
-                <span asp-validation-for="HeightMeters" class="text-danger"></span>
-            </div>
-            <div class="form-group mb-3">
-                <label asp-for="Difficulty" class="form-label"></label>
-                <select asp-for="Difficulty" asp-items="Html.GetEnumSelectList<Tebing.Common.Enums.DifficultyLevel>()" class="form-select"></select>
-            </div>
-            <div class="form-group mb-3">
-                <label asp-for="Status" class="form-label"></label>
-                <select asp-for="Status" asp-items="Html.GetEnumSelectList<Tebing.Common.Enums.MountainStatus>()" class="form-select"></select>
-            </div>
-            <div class="form-group mb-3">
-                <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control"></textarea>
-            </div>
-            <div class="form-group mb-3">
-                <label asp-for="ImageUrl" class="form-label"></label>
-                <input asp-for="ImageUrl" class="form-control"/>
-            </div>
-            <button type="submit" class="btn btn-primary">Simpan</button>
-            <a asp-action="Index" class="btn btn-link">Batal</a>
         </form>
     </div>
 </div>
+
+@* Saran provinsi yang udah ada, biar penulisannya konsisten (dipakai buat filter di daftar gunung). *@
+<datalist id="province-options">
+    @foreach (var province in provinces)
+    {
+        <option value="@province"></option>
+    }
+</datalist>
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }

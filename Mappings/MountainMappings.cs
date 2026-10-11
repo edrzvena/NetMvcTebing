@@ -13,7 +13,10 @@ public static class MountainMappings
         HeightMeters = mountain.HeightMeters,
         Difficulty = mountain.Difficulty,
         Status = mountain.Status,
-        ImageUrl = mountain.ImageUrl
+        ImageUrl = mountain.ImageUrl,
+        // Butuh Mountain.Routes di-Include.
+        RouteCount = mountain.Routes.Count(r => r.IsActive),
+        MinPricePerPerson = mountain.Routes.Where(r => r.IsActive).Select(r => (decimal?)r.PricePerPerson).Min()
     };
 
     public static MountainDetailDto ToDetailDto(this Mountain mountain) => new()

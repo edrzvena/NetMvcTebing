@@ -2,69 +2,73 @@
 
 @{
     ViewData["Title"] = "Daftar Gunung";
+    var search = ViewData["Search"] as string;
+    var province = ViewData["Province"] as string;
+    var difficulty = ViewData["Difficulty"] as DifficultyLevel?;
+    var provinces = (List<string>)ViewData["Provinces"]!;
+    var isFiltered = !string.IsNullOrWhiteSpace(search) || !string.IsNullOrWhiteSpace(province) || difficulty is not null;
 }
 
-<h1>Daftar Gunung</h1>
-
-@if (TempData["SuccessMessage"] is string successMessage)
-{
-    <div class="alert alert-success">@successMessage</div>
-}
-
-@if (User.IsInRole("Admin"))
-{
-    <p><a asp-action="Create" class="btn btn-primary">+ Tambah Gunung</a></p>
-}
-
-<form method="get" class="row g-2 mb-3">
-    <div class="col-auto">
-        <input type="text" name="province" value="@ViewData["Province"]" class="form-control" placeholder="Filter provinsi"/>
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1 class="mb-1">Daftar Gunung</h1>
+        <p class="text-secondary mb-0">@Model.Count gunung</p>
     </div>
-    <div class="col-auto">
-        <select name="difficulty" class="form-select">
-            <option value="">Semua tingkat kesulitan</option>
-            @foreach (var level in Enum.GetValues<Tebing.Common.Enums.DifficultyLevel>())
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" class="btn btn-primary">Tambah Gunung</a>
+    }
+</div>
+
+<form method="get" class="row g-2 mb-4" role="search">
+    <div class="col-12 col-md">
+        <label for="search" class="visually-hidden">Cari nama gunung</label>
+        <input type="search" id="search" name="search" value="@search" class="form-control" placeholder="Cari nama gunung atau provinsi…"/>
+    </div>
+    <div class="col-6 col-md-auto">
+        <label for="province" class="visually-hidden">Provinsi</label>
+        <select id="province" name="province" class="form-select">
+            <option value="">Semua provinsi</option>
+            @foreach (var item in provinces)
             {
-                <option value="@level" selected="@(ViewData["Difficulty"]?.ToString() == level.ToString())">@level</option>
+                <option value="@item" selected="@(item == province)">@item</option>
+            }
+        </select>
+    </div>
+    <div class="col-6 col-md-auto">
+        <label for="difficulty" class="visually-hidden">Tingkat kesulitan</label>
+        <select id="difficulty" name="difficulty" class="form-select">
+            <option value="">Semua kesulitan</option>
+            @foreach (var level in Enum.GetValues<DifficultyLevel>())
+            {
+                <option value="@level" selected="@(difficulty == level)">@level.ToLabel()</option>
             }
         </select>
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-outline-secondary">Filter</button>
+        @if (isFiltered)
+        {
+            <a asp-action="Index" class="btn btn-link">Reset</a>
+        }
     </div>
 </form>
 
 @if (!Model.Any())
 {
-    <p>Belum ada data gunung.</p>
+    <partial name="_EmptyState" model="@(isFiltered
+        ? new EmptyStateViewModel("Gak ada gunung yang cocok", "Coba kata kunci lain atau hapus filternya.",
+            "Reset Filter", Url.Action("Index"))
+        : new EmptyStateViewModel("Belum ada data gunung", "Data gunung bakal muncul di sini setelah ditambahkan admin."))"/>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th>Nama</th>
-            <th>Provinsi</th>
-            <th>Ketinggian (mdpl)</th>
-            <th>Kesulitan</th>
-            <th>Status</th>
-            <th>Rating</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
         @foreach (var mountain in Model)
         {
-            <tr>
-                <td>@mountain.Name</td>
-                <td>@mountain.Province</td>
-                <td>@mountain.HeightMeters</td>
-                <td>@mountain.Difficulty</td>
-                <td>@mountain.Status</td>
-                <td>@(mountain.AverageRating is { } rating ? $"★ {rating:0.0} ({mountain.ReviewCount})" : "-")</td>
-                <td><a asp-action="Detail" asp-route-id="@mountain.Id">Detail</a></td>
-            </tr>
+            <div class="col">
+                <partial name="_MountainCard" model="mountain"/>
+            </div>
         }
-        </tbody>
-    </table>
+    </div>
 }

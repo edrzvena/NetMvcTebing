@@ -9,12 +9,14 @@ namespace Tebing.Controllers;
 public class MountainController(IMountainService mountainService) : Controller
 {
     [HttpGet]
-    public async Task<IActionResult> Index(string? province, DifficultyLevel? difficulty)
+    public async Task<IActionResult> Index(string? search, string? province, DifficultyLevel? difficulty)
     {
+        ViewData["Search"] = search;
         ViewData["Province"] = province;
         ViewData["Difficulty"] = difficulty;
+        ViewData["Provinces"] = await mountainService.GetProvincesAsync();
 
-        var mountains = await mountainService.GetAllAsync(province, difficulty);
+        var mountains = await mountainService.GetAllAsync(search, province, difficulty);
         return View(mountains);
     }
 
@@ -30,7 +32,11 @@ public class MountainController(IMountainService mountainService) : Controller
 
     [Authorize(Roles = "Admin")]
     [HttpGet]
-    public IActionResult Create() => View(new MountainCreateDto());
+    public async Task<IActionResult> Create()
+    {
+        await SetProvincesAsync();
+        return View(new MountainCreateDto());
+    }
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
@@ -38,7 +44,10 @@ public class MountainController(IMountainService mountainService) : Controller
     public async Task<IActionResult> Create(MountainCreateDto dto)
     {
         if (!ModelState.IsValid)
+        {
+            await SetProvincesAsync();
             return View(dto);
+        }
 
         var id = await mountainService.CreateAsync(dto);
         TempData["SuccessMessage"] = "Data gunung berhasil ditambahkan.";
@@ -53,6 +62,7 @@ public class MountainController(IMountainService mountainService) : Controller
         if (mountain is null)
             return NotFound();
 
+        await SetProvincesAsync();
         return View(new MountainUpdateDto
         {
             Id = mountain.Id,
@@ -72,7 +82,10 @@ public class MountainController(IMountainService mountainService) : Controller
     public async Task<IActionResult> Edit(MountainUpdateDto dto)
     {
         if (!ModelState.IsValid)
+        {
+            await SetProvincesAsync();
             return View(dto);
+        }
 
         var success = await mountainService.UpdateAsync(dto);
         if (!success)
@@ -97,7 +110,13 @@ public class MountainController(IMountainService mountainService) : Controller
 
     [Authorize(Roles = "Admin")]
     [HttpGet]
-    public IActionResult AddRoute(int mountainId) => View(new RouteCreateDto { MountainId = mountainId });
+    public async Task<IActionResult> AddRoute(int mountainId)
+    {
+        if (!await SetMountainNameAsync(mountainId))
+            return NotFound();
+
+        return View(new RouteCreateDto { MountainId = mountainId });
+    }
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
@@ -105,7 +124,10 @@ public class MountainController(IMountainService mountainService) : Controller
     public async Task<IActionResult> AddRoute(RouteCreateDto dto)
     {
         if (!ModelState.IsValid)
+        {
+            await SetMountainNameAsync(dto.MountainId);
             return View(dto);
+        }
 
         var route = await mountainService.AddRouteAsync(dto);
         if (route is null)
@@ -123,6 +145,7 @@ public class MountainController(IMountainService mountainService) : Controller
         if (route is null)
             return NotFound();
 
+        await SetMountainNameAsync(route.MountainId);
         return View(new RouteCreateDto
         {
             Id = route.Id,
@@ -141,7 +164,10 @@ public class MountainController(IMountainService mountainService) : Controller
     public async Task<IActionResult> EditRoute(RouteCreateDto dto)
     {
         if (!ModelState.IsValid)
+        {
+            await SetMountainNameAsync(dto.MountainId);
             return View(dto);
+        }
 
         var success = await mountainService.UpdateRouteAsync(dto);
         if (!success)
@@ -162,5 +188,16 @@ public class MountainController(IMountainService mountainService) : Controller
 
         TempData["SuccessMessage"] = "Jalur pendakian dinonaktifkan.";
         return RedirectToAction(nameof(Detail), new { id = mountainId });
+    }
+
+    // Saran provinsi (datalist) di form gunung, biar penulisan nama provinsi konsisten buat filter.
+    private async Task SetProvincesAsync() => ViewData["Provinces"] = await mountainService.GetProvincesAsync();
+
+    // Nama gunung buat breadcrumb di form jalur. False kalau gunungnya gak ada.
+    private async Task<bool> SetMountainNameAsync(int mountainId)
+    {
+        var mountain = await mountainService.GetByIdAsync(mountainId);
+        ViewData["MountainName"] = mountain?.Name;
+        return mountain is not null;
     }
 }

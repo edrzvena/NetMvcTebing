@@ -1,5 +1,6 @@
 using Tebing.Common;
 using Tebing.Common.Enums;
+using Tebing.Common.Extensions;
 using Tebing.Constants;
 using Tebing.DTOs.Payment;
 using Tebing.Models;
@@ -33,7 +34,7 @@ public class PaymentService(
             return new PaymentResult(false, "Booking tidak ditemukan.");
 
         if (booking.Status != BookingStatus.Pending)
-            return new PaymentResult(false, "Bukti transfer cuma bisa diupload untuk booking yang masih Pending.");
+            return new PaymentResult(false, "Bukti transfer cuma bisa diupload untuk booking yang masih Menunggu.");
 
         if (booking.TotalPrice <= 0)
             return new PaymentResult(false, "Booking ini gratis, gak perlu upload bukti transfer.");
@@ -119,7 +120,7 @@ public class PaymentService(
         if (dto.Status == PaymentStatus.Verified)
         {
             if (!BookingStatusFlow.CanTransition(booking.Status, BookingStatus.Approved))
-                return new PaymentResult(false, $"Booking berstatus {booking.Status}, tidak bisa di-approve.");
+                return new PaymentResult(false, $"Booking berstatus {booking.Status.ToLabel()}, tidak bisa disetujui.");
 
             payment.Status = PaymentStatus.Verified;
             payment.VerifiedAt = DateTime.UtcNow;

@@ -1,14 +1,16 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Tebing.Models;
+using Tebing.Services.Interfaces;
 
 namespace Tebing.Controllers;
 
-public class HomeController : Controller
+public class HomeController(IMountainService mountainService) : Controller
 {
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
+        var mountains = await mountainService.GetTopRatedAsync(3);
+        return View(mountains);
     }
 
     public IActionResult Privacy()
@@ -20,5 +22,12 @@ public class HomeController : Controller
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+
+    // Tujuan UseStatusCodePagesWithReExecute di Program.cs, biar 404 dkk gak jadi halaman kosong browser.
+    public IActionResult HttpStatus(int code)
+    {
+        Response.StatusCode = code;
+        return View(code);
     }
 }

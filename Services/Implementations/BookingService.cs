@@ -1,5 +1,6 @@
 using Tebing.Common;
 using Tebing.Common.Enums;
+using Tebing.Common.Extensions;
 using Tebing.DTOs.Booking;
 using Tebing.Mappings;
 using Tebing.Models;
@@ -70,7 +71,13 @@ public class BookingService(
     public async Task<List<BookingListDto>> GetByUserAsync(int userId)
     {
         var bookings = await bookingRepository.GetByUserIdAsync(userId);
-        return bookings.Select(b => b.ToListDto()).ToList();
+
+        // Yang butuh aksi pendaki (belum upload / bukti ditolak) ditaruh paling atas, sisanya tetap
+        // urut terbaru dulu (OrderBy stabil, urutan dari repository dipertahankan).
+        return bookings
+            .Select(b => b.ToListDto())
+            .OrderByDescending(b => b.NeedsPayment)
+            .ToList();
     }
 
     public async Task<BookingDetailDto?> GetByIdAsync(int id)
@@ -85,6 +92,9 @@ public class BookingService(
             .ToList();
         return dto;
     }
+
+    public Task<Dictionary<BookingStatus, int>> GetStatusCountsAsync(int? mountainId = null, DateOnly? climbDate = null) =>
+        bookingRepository.GetStatusCountsAsync(mountainId, climbDate);
 
     public async Task<List<BookingListDto>> GetAllForAdminAsync(int? mountainId = null, BookingStatus? status = null,
         DateOnly? climbDate = null)
@@ -102,7 +112,7 @@ public class BookingService(
             return new BookingResult(false, "Booking tidak ditemukan.");
 
         if (!BookingStatusFlow.CanTransition(booking.Status, dto.Status))
-            return new BookingResult(false, $"Status booking tidak bisa diubah dari {booking.Status} ke {dto.Status}.");
+            return new BookingResult(false, $"Status booking tidak bisa diubah dari {booking.Status.ToLabel()} ke {dto.Status.ToLabel()}.");
 
         if (dto.Status == BookingStatus.Approved && RequiresPayment(booking))
             return new BookingResult(false, "Booking berbayar di-approve lewat verifikasi pembayaran.");
@@ -128,7 +138,7 @@ public class BookingService(
             return new BookingResult(false, "Booking tidak ditemukan.");
 
         if (booking.Status != BookingStatus.Pending)
-            return new BookingResult(false, "Cuma booking berstatus Pending yang bisa dibatalkan.");
+            return new BookingResult(false, "Cuma booking yang masih Menunggu yang bisa dibatalkan.");
 
         booking.Status = BookingStatus.Cancelled;
         bookingRepository.Update(booking);

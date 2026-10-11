@@ -18,4 +18,8 @@ public class BookingListDto
 
     // Cuma diisi di daftar booking versi admin (biar tau siapa yang booking).
     public string? UserFullName { get; set; }
+
+    // Masih nunggu pembayaran dari pendaki: booking berbayar yang Pending dan belum upload / buktinya ditolak.
+    public bool NeedsPayment => Status == BookingStatus.Pending && TotalPrice > 0 &&
+                                PaymentStatus is null or Common.Enums.PaymentStatus.Rejected;
 }

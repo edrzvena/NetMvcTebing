@@ -2,125 +2,212 @@
 
 @{
     ViewData["Title"] = Model.Name;
+    var isAdmin = User.IsInRole("Admin");
+    var isOpen = Model.Status == MountainStatus.Open;
+    var activeRoutes = Model.Routes.Where(r => r.IsActive).ToList();
+    // Jalur nonaktif cuma kelihatan admin.
+    var visibleRoutes = isAdmin ? Model.Routes : activeRoutes;
+    var canBook = isOpen && activeRoutes.Any();
 }
 
-@if (TempData["SuccessMessage"] is string successMessage)
-{
-    <div class="alert alert-success">@successMessage</div>
-}
-@if (TempData["ErrorMessage"] is string errorMessage)
-{
-    <div class="alert alert-danger">@errorMessage</div>
-}
-
-<h1>@Model.Name</h1>
-<p>
-    @Model.Province &middot; @Model.HeightMeters mdpl &middot; @Model.Difficulty &middot; @Model.Status
-    &middot; @(Model.AverageRating is { } rating ? $"★ {rating:0.0} ({Model.Reviews.Count} ulasan)" : "Belum ada ulasan")
-</p>
-
-@if (!string.IsNullOrEmpty(Model.ImageUrl))
-{
-    <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid mb-3" style="max-height:300px"/>
-}
-
-@if (!string.IsNullOrEmpty(Model.Description))
-{
-    <p>@Model.Description</p>
-}
-
-@if (User.IsInRole("Admin"))
-{
-    <p>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">Edit Gunung</a>
-        <form asp-action="Close" asp-route-id="@Model.Id" method="post" class="d-inline"
-              onsubmit="return confirm('Tutup gunung ini dari daftar aktif?');">
-            <button type="submit" class="btn btn-sm btn-outline-danger">Tutup Gunung</button>
-        </form>
-        <a asp-action="AddRoute" asp-route-mountainId="@Model.Id" class="btn btn-sm btn-primary">+ Tambah Jalur</a>
-    </p>
-}
-
-@if (Model.Status == Tebing.Common.Enums.MountainStatus.Open && Model.Routes.Any(r => r.IsActive))
-{
-    <p>
-        <a asp-controller="Booking" asp-action="Create" asp-route-mountainId="@Model.Id" class="btn btn-success">
-            Booking Pendakian
-        </a>
-    </p>
-}
-
-<h3>Jalur Pendakian</h3>
-@if (!Model.Routes.Any())
-{
-    <p>Belum ada jalur pendakian.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th>Nama Jalur</th>
-            <th>Jarak (km)</th>
-            <th>Estimasi Waktu</th>
-            <th>Kuota Harian</th>
-            <th>Harga/Orang</th>
-            <th>Status</th>
-            @if (User.IsInRole("Admin"))
-            {
-                <th></th>
-            }
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var route in Model.Routes)
-        {
-            <tr>
-                <td>@route.Name</td>
-                <td>@route.DistanceKm</td>
-                <td>@route.EstimatedDuration</td>
-                <td>@(route.DailyQuota?.ToString() ?? "Tanpa batas")</td>
-                <td>Rp @route.PricePerPerson.ToString("N0")</td>
-                <td>@(route.IsActive ? "Aktif" : "Nonaktif")</td>
-                @if (User.IsInRole("Admin"))
-                {
-                    <td>
-                        <a asp-action="EditRoute" asp-route-id="@route.Id">Edit</a>
-                        @if (route.IsActive)
-                        {
-                            <form asp-action="DeactivateRoute" asp-route-id="@route.Id" asp-route-mountainId="@Model.Id"
-                                  method="post" class="d-inline"
-                                  onsubmit="return confirm('Nonaktifkan jalur ini?');">
-                                <button type="submit" class="btn btn-link p-0 ms-2">Nonaktifkan</button>
-                            </form>
-                        }
-                    </td>
-                }
-            </tr>
-        }
-        </tbody>
-    </table>
-}
-
-<h3>Ulasan Pendaki</h3>
-@if (!Model.Reviews.Any())
-{
-    <p>Belum ada ulasan. Ulasan cuma bisa dikasih pendaki yang udah selesai naik lewat Tebing.</p>
-}
-else
-{
-    @foreach (var review in Model.Reviews)
+@* Isi panel booking dirender 2x: di card sidebar (desktop) dan sebagai section di atas daftar jalur
+   (mobile, tanpa card sendiri biar gak card dalam card). *@
+@{
+    async Task BookingPanel()
     {
-        <div class="border-bottom pb-2 mb-3">
-            <strong>@review.UserFullName</strong>
-            <span class="text-warning ms-2">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
-            <small class="text-muted ms-2">@review.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</small>
-            @if (!string.IsNullOrEmpty(review.Comment))
-            {
-                <p class="mb-0 mt-1">@review.Comment</p>
-            }
-        </div>
+                <h2 class="h3 mb-3">Booking pendakian</h2>
+                @if (canBook)
+                {
+                    var minPrice = activeRoutes.Min(r => r.PricePerPerson);
+                    <p class="mb-1 tabular-nums">
+                        @if (minPrice <= 0)
+                        {
+                            <span class="fw-semibold">Gratis</span>
+                        }
+                        else
+                        {
+                            <span class="text-secondary">Mulai</span>
+                            <span class="fw-semibold">@minPrice.ToRupiah()</span><span class="text-secondary">/orang</span>
+                        }
+                    </p>
+                    <p class="text-secondary small mb-3">@activeRoutes.Count jalur aktif</p>
+                    <a asp-controller="Booking" asp-action="Create" asp-route-mountainId="@Model.Id" class="btn btn-primary w-100">
+                        Booking Pendakian
+                    </a>
+                }
+                else if (!isOpen)
+                {
+                    <p class="text-secondary mb-0">Gunung sedang ditutup, belum bisa dibooking.</p>
+                }
+                else
+                {
+                    <p class="text-secondary mb-0">Belum ada jalur aktif, belum bisa dibooking.</p>
+                }
     }
 }
 
-<a asp-action="Index">&larr; Kembali ke daftar gunung</a>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small mb-2">
+        <li class="breadcrumb-item"><a asp-action="Index">Gunung</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+    </ol>
+</nav>
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1 class="mb-1">@Model.Name @Model.Status.ToBadge()</h1>
+        <p class="text-secondary mb-0 tabular-nums">
+            @Model.Province &middot; @Model.HeightMeters.ToNumber() mdpl &middot; @Model.Difficulty.ToBadge()
+            &middot;
+            @if (Model.AverageRating is { } rating)
+            {
+                <span class="rating-star" aria-hidden="true">★</span>
+                <span class="text-body">@rating.ToRating()</span>
+                <span>(@Model.Reviews.Count ulasan)</span>
+            }
+            else
+            {
+                <span>Belum ada ulasan</span>
+            }
+        </p>
+    </div>
+    @if (isAdmin)
+    {
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Edit Gunung</a>
+            @if (isOpen)
+            {
+                <form asp-action="Close" asp-route-id="@Model.Id" method="post" class="m-0"
+                      onsubmit="return confirm('Tutup gunung ini? Pendaki gak bisa booking sampai dibuka lagi lewat Edit Gunung.');">
+                    <button type="submit" class="btn btn-outline-danger">Tutup Gunung</button>
+                </form>
+            }
+        </div>
+    }
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <div class="ratio ratio-16x9">
+                    <img src="@Model.ImageUrl" alt="@Model.Name" class="card-img-top object-fit-cover"/>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <section class="section p-3 p-lg-4">
+                    <h2>Tentang</h2>
+                    <p class="mb-0">@Model.Description</p>
+                </section>
+            }
+
+            <section class="section p-3 d-lg-none">
+                @{ await BookingPanel(); }
+            </section>
+
+            <section class="section p-3 p-lg-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h2 class="mb-0">Jalur Pendakian</h2>
+                    @if (isAdmin)
+                    {
+                        <a asp-action="AddRoute" asp-route-mountainId="@Model.Id" class="btn btn-outline-secondary btn-sm">Tambah Jalur</a>
+                    }
+                </div>
+                @if (!visibleRoutes.Any())
+                {
+                    <p class="text-secondary mb-0">Belum ada jalur pendakian.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Jalur</th>
+                                <th class="text-end">Jarak</th>
+                                <th>Durasi</th>
+                                <th class="text-end">Kuota/hari</th>
+                                <th class="text-end">Harga/orang</th>
+                                @if (isAdmin)
+                                {
+                                    <th><span class="visually-hidden">Aksi</span></th>
+                                }
+                            </tr>
+                            </thead>
+                            <tbody class="tabular-nums">
+                            @foreach (var route in visibleRoutes)
+                            {
+                                <tr class="@(route.IsActive ? "" : "text-secondary")">
+                                    <td>
+                                        @route.Name
+                                        @if (!route.IsActive)
+                                        {
+                                            @StatusBadgeExtensions.InactiveBadge()
+                                        }
+                                    </td>
+                                    <td class="text-end text-nowrap">@route.DistanceKm.ToDecimalNumber() km</td>
+                                    <td>@(route.EstimatedDuration ?? "-")</td>
+                                    <td class="text-end">@(route.DailyQuota?.ToNumber() ?? "Tanpa batas")</td>
+                                    <td class="text-end text-nowrap">@(route.PricePerPerson <= 0 ? "Gratis" : route.PricePerPerson.ToRupiah())</td>
+                                    @if (isAdmin)
+                                    {
+                                        <td class="text-end text-nowrap">
+                                            <a asp-action="EditRoute" asp-route-id="@route.Id" class="btn btn-link btn-sm">Edit</a>
+                                            @if (route.IsActive)
+                                            {
+                                                <form asp-action="DeactivateRoute" asp-route-id="@route.Id" asp-route-mountainId="@Model.Id"
+                                                      method="post" class="d-inline"
+                                                      onsubmit="return confirm('Nonaktifkan jalur ini? Jalurnya gak bisa dipilih lagi waktu booking.');">
+                                                    <button type="submit" class="btn btn-link btn-sm link-danger">Nonaktifkan</button>
+                                                </form>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+
+            <section class="section p-3 p-lg-4">
+                <h2 class="mb-3">Ulasan Pendaki (@Model.Reviews.Count)</h2>
+                @if (!Model.Reviews.Any())
+                {
+                    <p class="text-secondary mb-0">Belum ada ulasan. Ulasan cuma bisa dikasih pendaki yang udah selesai naik lewat Tebing.</p>
+                }
+                else
+                {
+                    @foreach (var review in Model.Reviews)
+                    {
+                        <div class="section py-3">
+                            <p class="mb-1">
+                                <span class="fw-semibold">@review.UserFullName</span>
+                                <span class="rating-star ms-2" role="img" aria-label="Rating @review.Rating dari 5">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+                                <span class="text-secondary small ms-2">@review.CreatedAt.ToDisplayDate()</span>
+                            </p>
+                            @if (!string.IsNullOrEmpty(review.Comment))
+                            {
+                                <p class="mb-0">@review.Comment</p>
+                            }
+                        </div>
+                    }
+                }
+            </section>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-none d-lg-block">
+        <div class="card sticky-panel">
+            <div class="card-body p-4">
+                @{ await BookingPanel(); }
+            </div>
+        </div>
+    </div>
+</div>
+
+<p class="mt-4 mb-0"><a asp-action="Index">&larr; Kembali ke daftar gunung</a></p>

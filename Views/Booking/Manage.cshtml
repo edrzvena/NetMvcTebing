@@ -1,85 +1,129 @@
-@using Tebing.Common.Enums
 @using Microsoft.AspNetCore.Mvc.Rendering
 @model List<Tebing.DTOs.Booking.BookingListDto>
 
 @{
     ViewData["Title"] = "Kelola Booking";
     var mountainOptions = (List<SelectListItem>)ViewData["MountainOptions"]!;
+    var mountainId = ViewData["MountainId"] as int?;
     var selectedStatus = ViewData["Status"] as BookingStatus?;
     var climbDate = ViewData["ClimbDate"] as DateOnly?;
+    var statusCounts = (Dictionary<BookingStatus, int>)ViewData["StatusCounts"]!;
+    var isFiltered = mountainId is not null || climbDate is not null || selectedStatus is not null;
+
+    // Tab status tetap bawa filter gunung & tanggal yang lagi aktif.
+    string TabUrl(BookingStatus? status) => Url.Action("Manage", new
+    {
+        mountainId,
+        status,
+        climbDate = climbDate?.ToString("yyyy-MM-dd")
+    })!;
+
+    var tabs = new List<(BookingStatus? Status, string Label, int Count)> { (null, "Semua", statusCounts.Values.Sum()) };
+    tabs.AddRange(new[] { BookingStatus.Pending, BookingStatus.Approved, BookingStatus.Completed, BookingStatus.Rejected, BookingStatus.Cancelled }
+        .Select(s => ((BookingStatus?)s, s.ToLabel(), statusCounts.GetValueOrDefault(s))));
 }
 
-<h1>Kelola Booking</h1>
+<div class="page-header">
+    <h1 class="mb-0">Kelola Booking</h1>
+</div>
+
+<ul class="nav nav-pills flex-wrap gap-1 mb-3" aria-label="Filter status">
+    @foreach (var tab in tabs)
+    {
+        var active = tab.Status == selectedStatus;
+        <li class="nav-item">
+            <a href="@TabUrl(tab.Status)" class="nav-link py-1 px-3 @(active ? "active" : "")" aria-current="@(active ? "page" : null)">
+                @tab.Label <span class="tabular-nums @(active ? "" : "text-secondary")">@tab.Count</span>
+            </a>
+        </li>
+    }
+</ul>
 
 <form method="get" class="row g-2 mb-3">
-    <div class="col-auto">
-        <select name="mountainId" asp-items="mountainOptions" class="form-select">
+    @if (selectedStatus is not null)
+    {
+        <input type="hidden" name="status" value="@selectedStatus"/>
+    }
+    <div class="col-12 col-sm-auto">
+        <label for="mountainId" class="visually-hidden">Gunung</label>
+        <select id="mountainId" name="mountainId" asp-items="mountainOptions" class="form-select">
             <option value="">Semua gunung</option>
         </select>
     </div>
-    <div class="col-auto">
-        <select name="status" class="form-select">
-            <option value="">Semua status</option>
-            @foreach (var status in Enum.GetValues<BookingStatus>())
-            {
-                <option value="@status" selected="@(selectedStatus == status)">@status</option>
-            }
-        </select>
-    </div>
-    <div class="col-auto">
-        <input type="date" name="climbDate" value="@climbDate?.ToString("yyyy-MM-dd")" class="form-control"/>
+    <div class="col-12 col-sm-auto">
+        <label for="climbDate" class="visually-hidden">Tanggal naik</label>
+        <input type="date" id="climbDate" name="climbDate" value="@climbDate?.ToString("yyyy-MM-dd")" class="form-control"/>
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-outline-secondary">Filter</button>
-        <a asp-action="Manage" class="btn btn-link">Reset</a>
+        @if (isFiltered)
+        {
+            <a asp-action="Manage" class="btn btn-link">Reset</a>
+        }
     </div>
 </form>
 
 @if (climbDate is not null)
 {
-    <p class="text-muted">
-        Total pendaki terdaftar tanggal @climbDate.Value.ToString("dd MMM yyyy") (selain Rejected/Cancelled):
-        <strong>@Model.Where(b => b.Status != BookingStatus.Rejected && b.Status != BookingStatus.Cancelled).Sum(b => b.NumberOfPeople) orang</strong>
+    <p class="text-secondary">
+        Total pendaki tanggal @climbDate.Value.ToDisplayDate() (selain Ditolak/Dibatalkan):
+        <strong class="text-body tabular-nums">@Model.Where(b => b.Status != BookingStatus.Rejected && b.Status != BookingStatus.Cancelled).Sum(b => b.NumberOfPeople) orang</strong>
     </p>
 }
 
 @if (!Model.Any())
 {
-    <p>Belum ada booking yang cocok dengan filter.</p>
+    <partial name="_EmptyState" model="@(isFiltered
+        ? new EmptyStateViewModel("Gak ada booking yang cocok", "Coba ganti status, gunung, atau tanggalnya.",
+            "Reset Filter", Url.Action("Manage"))
+        : new EmptyStateViewModel("Belum ada booking", "Booking dari pendaki bakal muncul di sini."))"/>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>Pemesan</th>
-            <th>Gunung</th>
-            <th>Jalur</th>
-            <th>Tanggal Naik</th>
-            <th>Jumlah Orang</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th>Pembayaran</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var booking in Model)
-        {
-            <tr>
-                <td>@booking.Id</td>
-                <td>@booking.UserFullName</td>
-                <td>@booking.MountainName</td>
-                <td>@booking.RouteName</td>
-                <td>@booking.ClimbDate.ToString("dd MMM yyyy")</td>
-                <td>@booking.NumberOfPeople</td>
-                <td>Rp @booking.TotalPrice.ToString("N0")</td>
-                <td>@booking.Status</td>
-                <td>@(booking.TotalPrice <= 0 ? "Gratis" : booking.PaymentStatus?.ToString() ?? "Belum upload")</td>
-                <td><a asp-action="Detail" asp-route-id="@booking.Id">Detail</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <p class="small text-secondary mb-2">
+        <span class="dot-warning me-1" aria-hidden="true"></span> = bukti transfer menunggu verifikasi
+    </p>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="ps-3">#</th>
+                    <th>Pemesan</th>
+                    <th>Gunung &middot; Jalur</th>
+                    <th>Tanggal</th>
+                    <th class="text-end">Orang</th>
+                    <th class="text-end">Total</th>
+                    <th>Status</th>
+                    <th>Pembayaran</th>
+                    <th class="pe-3"><span class="visually-hidden">Detail</span></th>
+                </tr>
+                </thead>
+                <tbody class="tabular-nums">
+                @foreach (var booking in Model)
+                {
+                    var awaitingVerification = booking.PaymentStatus == PaymentStatus.Pending;
+                    <tr class="table-row-link">
+                        <td class="ps-3 text-nowrap">
+                            @if (awaitingVerification)
+                            {
+                                <span class="dot-warning me-1" aria-hidden="true"></span>
+                                <span class="visually-hidden">Menunggu verifikasi pembayaran,</span>
+                            }
+                            <a asp-action="Detail" asp-route-id="@booking.Id" class="stretched-link text-reset text-decoration-none">@booking.Id</a>
+                        </td>
+                        <td>@booking.UserFullName</td>
+                        <td>@booking.MountainName <span class="text-secondary">&middot; @booking.RouteName</span></td>
+                        <td class="text-nowrap">@booking.ClimbDate.ToDisplayDate()</td>
+                        <td class="text-end">@booking.NumberOfPeople</td>
+                        <td class="text-end text-nowrap">@(booking.TotalPrice <= 0 ? "Gratis" : booking.TotalPrice.ToRupiah())</td>
+                        <td>@booking.Status.ToBadge()</td>
+                        <td class="text-nowrap">@booking.PaymentStatus.ToPaymentBadge(booking.TotalPrice)</td>
+                        <td class="pe-3 text-end text-secondary" aria-hidden="true">&rarr;</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
 }

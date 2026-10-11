@@ -1,0 +1,49 @@
+@model Tebing.DTOs.Mountain.MountainListDto
+
+@{
+    var isClosed = Model.Status == MountainStatus.Closed;
+}
+
+<div class="card card-clickable h-100">
+    <div class="card-body p-3 d-flex flex-column gap-2 @(isClosed ? "text-secondary" : "")">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <h3 class="card-title mb-0">
+                <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@Model.Id"
+                   class="stretched-link text-reset text-decoration-none">@Model.Name</a>
+            </h3>
+            @Model.Status.ToBadge()
+        </div>
+        <p class="small text-secondary mb-0 tabular-nums">@Model.Province &middot; @Model.HeightMeters.ToNumber() mdpl</p>
+        <p class="small mb-0">
+            @Model.Difficulty.ToBadge()
+            <span class="text-secondary ms-1">@(Model.RouteCount > 0 ? $"{Model.RouteCount} jalur" : "Belum ada jalur")</span>
+        </p>
+        <p class="small mb-0">
+            @if (Model.AverageRating is { } rating)
+            {
+                <span class="rating-star" aria-hidden="true">★</span>
+                <span class="tabular-nums">@rating.ToRating()</span>
+                <span class="text-secondary">(@Model.ReviewCount)</span>
+                <span class="visually-hidden">rating dari @Model.ReviewCount ulasan</span>
+            }
+            else
+            {
+                <span class="text-secondary">Belum ada ulasan</span>
+            }
+        </p>
+        @if (Model.MinPricePerPerson is { } minPrice)
+        {
+            <p class="mb-0 mt-auto pt-1 tabular-nums">
+                @if (minPrice <= 0)
+                {
+                    <span class="fw-semibold">Gratis</span>
+                }
+                else
+                {
+                    <span class="text-secondary small">Mulai</span>
+                    <span class="fw-semibold">@minPrice.ToRupiah()</span><span class="text-secondary small">/orang</span>
+                }
+            </p>
+        }
+    </div>
+</div>

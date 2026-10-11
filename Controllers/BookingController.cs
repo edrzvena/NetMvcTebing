@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Tebing.Common.Enums;
+using Tebing.Common.Extensions;
 using Tebing.DTOs.Booking;
 using Tebing.Services.Interfaces;
 using Tebing.ViewModels.Booking;
@@ -25,7 +26,7 @@ public class BookingController(IBookingService bookingService, IMountainService 
         if (!await PopulateCreateViewModelAsync(model))
             return NotFound();
 
-        if (model.RouteOptions.Count == 0)
+        if (model.Routes.Count == 0)
         {
             TempData["ErrorMessage"] = "Gunung ini sedang tidak menerima booking.";
             return RedirectToAction("Detail", "Mountain", new { id = mountainId });
@@ -52,7 +53,7 @@ public class BookingController(IBookingService bookingService, IMountainService 
             return View(model);
         }
 
-        TempData["SuccessMessage"] = "Booking berhasil dibuat, menunggu konfirmasi admin.";
+        TempData["SuccessMessage"] = "Booking dibuat. Ikuti langkah berikutnya di bawah biar booking kamu bisa diproses.";
         return RedirectToAction(nameof(Detail), new { id = result.BookingId });
     }
 
@@ -99,6 +100,9 @@ public class BookingController(IBookingService bookingService, IMountainService 
             .Select(m => new SelectListItem(m.Name, m.Id.ToString(), m.Id == mountainId))
             .ToList();
 
+        // Hitungan per status ngikut filter gunung & tanggal, tapi gak ngikut filter status (buat angka di tab).
+        ViewData["StatusCounts"] = await bookingService.GetStatusCountsAsync(mountainId, climbDate);
+
         var bookings = await bookingService.GetAllForAdminAsync(mountainId, status, climbDate);
         return View(bookings);
     }
@@ -116,7 +120,7 @@ public class BookingController(IBookingService bookingService, IMountainService 
 
         var result = await bookingService.UpdateStatusAsync(dto);
         if (result.Success)
-            TempData["SuccessMessage"] = $"Status booking diubah jadi {dto.Status}.";
+            TempData["SuccessMessage"] = $"Status booking diubah jadi {dto.Status.ToLabel()}.";
         else
             TempData["ErrorMessage"] = result.Error;
 
@@ -131,14 +135,10 @@ public class BookingController(IBookingService bookingService, IMountainService 
             return false;
 
         model.MountainName = mountain.Name;
-        model.RouteOptions = mountain.Status == MountainStatus.Open
+        model.Routes = mountain.Status == MountainStatus.Open
             ? mountain.Routes
                 .Where(r => r.IsActive)
-                .Select(r => new SelectListItem(
-                    $"{r.Name} — Rp {r.PricePerPerson:N0}/orang" +
-                    (r.DailyQuota is { } quota ? $" (kuota {quota}/hari)" : ""),
-                    r.Id.ToString(),
-                    r.Id == model.Booking.HikingRouteId))
+                .Select(r => new RouteOption(r.Id, r.Name, r.PricePerPerson, r.DailyQuota))
                 .ToList()
             : [];
 

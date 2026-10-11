@@ -2,83 +2,140 @@
 
 @{
     ViewData["Title"] = "Booking Pendakian";
+    var selectedRoute = Model.Routes.FirstOrDefault(r => r.Id == Model.Booking.HikingRouteId);
 }
 
-<h1>Booking Pendakian — @Model.MountainName</h1>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small mb-2">
+        <li class="breadcrumb-item"><a asp-controller="Mountain" asp-action="Index">Gunung</a></li>
+        <li class="breadcrumb-item">
+            <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@Model.Booking.MountainId">@Model.MountainName</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Booking</li>
+    </ol>
+</nav>
+
+<div class="page-header">
+    <h1 class="mb-0">Booking Pendakian — @Model.MountainName</h1>
+</div>
 
 <form asp-action="Create" method="post" id="booking-form">
     <input type="hidden" asp-for="Booking.MountainId"/>
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group mb-3">
-                <label asp-for="Booking.HikingRouteId" class="form-label"></label>
-                <select asp-for="Booking.HikingRouteId" asp-items="Model.RouteOptions" class="form-select">
-                    <option value="0">-- Pilih jalur --</option>
-                </select>
-                <span asp-validation-for="Booking.HikingRouteId" class="text-danger"></span>
-            </div>
-            <div class="form-group mb-3">
-                <label asp-for="Booking.ClimbDate" class="form-label"></label>
-                <input asp-for="Booking.ClimbDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control"
-                       min="@DateTime.Today.ToString("yyyy-MM-dd")"/>
-                <span asp-validation-for="Booking.ClimbDate" class="text-danger"></span>
-            </div>
-        </div>
-    </div>
-
-    <h3>Peserta Rombongan</h3>
-    <p class="text-muted">Isi data tiap anggota rombongan, termasuk kamu sendiri. Jumlah orang = jumlah peserta di bawah.</p>
-    <span asp-validation-for="Booking.Participants" class="text-danger"></span>
-
-    <div id="participants">
-        @for (var i = 0; i < Model.Booking.Participants.Count; i++)
-        {
-            <div class="participant card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="card-title mb-0">Peserta <span class="participant-number">@(i + 1)</span></h5>
-                        <button type="button" class="btn btn-sm btn-outline-danger remove-participant">Hapus</button>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-2">
-                            <label asp-for="Booking.Participants[i].FullName" class="form-label"></label>
-                            <input asp-for="Booking.Participants[i].FullName" class="form-control"/>
-                            <span asp-validation-for="Booking.Participants[i].FullName" class="text-danger"></span>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="card mb-4">
+                <div class="card-body p-3 p-lg-4">
+                    <h2 class="mb-3">1. Jalur &amp; tanggal</h2>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label asp-for="Booking.HikingRouteId" class="form-label"></label>
+                            <select asp-for="Booking.HikingRouteId" class="form-select" aria-describedby="route-quota">
+                                <option value="0">Pilih jalur</option>
+                                @foreach (var route in Model.Routes)
+                                {
+                                    <option value="@route.Id" data-name="@route.Name" data-price="@route.PricePerPerson.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                            data-quota="@route.DailyQuota">
+                                        @route.Name — @(route.PricePerPerson <= 0 ? "Gratis" : route.PricePerPerson.ToRupiah() + "/orang")
+                                    </option>
+                                }
+                            </select>
+                            <div id="route-quota" class="form-text">
+                                @if (selectedRoute?.DailyQuota is { } quota)
+                                {
+                                    @($"Kuota jalur ini {quota.ToNumber()} orang/hari.")
+                                }
+                            </div>
+                            <span asp-validation-for="Booking.HikingRouteId" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-6 mb-2">
-                            <label asp-for="Booking.Participants[i].NIK" class="form-label"></label>
-                            <input asp-for="Booking.Participants[i].NIK" class="form-control" inputmode="numeric" maxlength="16"/>
-                            <span asp-validation-for="Booking.Participants[i].NIK" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Booking.Participants[i].PhoneNumber" class="form-label"></label>
-                            <input asp-for="Booking.Participants[i].PhoneNumber" class="form-control"/>
-                            <span asp-validation-for="Booking.Participants[i].PhoneNumber" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Booking.Participants[i].EmergencyContactName" class="form-label"></label>
-                            <input asp-for="Booking.Participants[i].EmergencyContactName" class="form-control"/>
-                            <span asp-validation-for="Booking.Participants[i].EmergencyContactName" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Booking.Participants[i].EmergencyContactPhone" class="form-label"></label>
-                            <input asp-for="Booking.Participants[i].EmergencyContactPhone" class="form-control"/>
-                            <span asp-validation-for="Booking.Participants[i].EmergencyContactPhone" class="text-danger"></span>
+                        <div class="col-md-5">
+                            <label asp-for="Booking.ClimbDate" class="form-label"></label>
+                            <input asp-for="Booking.ClimbDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")"/>
+                            <span asp-validation-for="Booking.ClimbDate" class="text-danger small"></span>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
+            </section>
+
+            <section class="card">
+                <div class="card-body p-3 p-lg-4">
+                    <h2 class="mb-1">2. Peserta rombongan (<span id="participant-count">@Model.Booking.Participants.Count</span>)</h2>
+                    <p class="text-secondary small mb-3">
+                        Isi data tiap anggota rombongan, termasuk kamu sendiri. Jumlah orang dihitung dari jumlah peserta.
+                    </p>
+                    <span asp-validation-for="Booking.Participants" class="text-danger small"></span>
+
+                    <div id="participants">
+                        @for (var i = 0; i < Model.Booking.Participants.Count; i++)
+                        {
+                            <div class="participant">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h3 class="mb-0">Peserta <span class="participant-number">@(i + 1)</span></h3>
+                                    <button type="button" class="btn btn-link btn-sm link-danger remove-participant">Hapus</button>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="Booking.Participants[i].FullName" class="form-label"></label>
+                                        <input asp-for="Booking.Participants[i].FullName" class="form-control" autocomplete="off"/>
+                                        <span asp-validation-for="Booking.Participants[i].FullName" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Booking.Participants[i].NIK" class="form-label"></label>
+                                        <input asp-for="Booking.Participants[i].NIK" class="form-control tabular-nums" inputmode="numeric" maxlength="16" autocomplete="off"/>
+                                        <span asp-validation-for="Booking.Participants[i].NIK" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Booking.Participants[i].PhoneNumber" class="form-label"></label>
+                                        <input asp-for="Booking.Participants[i].PhoneNumber" class="form-control" autocomplete="off"/>
+                                        <span asp-validation-for="Booking.Participants[i].PhoneNumber" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Booking.Participants[i].EmergencyContactName" class="form-label"></label>
+                                        <input asp-for="Booking.Participants[i].EmergencyContactName" class="form-control" autocomplete="off"/>
+                                        <span asp-validation-for="Booking.Participants[i].EmergencyContactName" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Booking.Participants[i].EmergencyContactPhone" class="form-label"></label>
+                                        <input asp-for="Booking.Participants[i].EmergencyContactPhone" class="form-control" autocomplete="off"/>
+                                        <span asp-validation-for="Booking.Participants[i].EmergencyContactPhone" class="text-danger small"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <button type="button" id="add-participant" class="btn btn-outline-secondary mt-3">Tambah Peserta</button>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <aside class="card sticky-panel" aria-labelledby="summary-title">
+                <div class="card-body p-3 p-lg-4">
+                    <h2 id="summary-title" class="mb-3">Ringkasan</h2>
+                    <dl class="mb-0 small">
+                        <dt class="text-secondary fw-normal">Gunung</dt>
+                        <dd>@Model.MountainName</dd>
+                        <dt class="text-secondary fw-normal">Jalur</dt>
+                        <dd id="summary-route">@(selectedRoute?.Name ?? "-")</dd>
+                        <dt class="text-secondary fw-normal">Tanggal naik</dt>
+                        <dd id="summary-date">@(Model.Booking.ClimbDate?.ToDisplayDate() ?? "-")</dd>
+                        <dt class="text-secondary fw-normal">Peserta</dt>
+                        <dd id="summary-people" class="tabular-nums">-</dd>
+                    </dl>
+                    <div class="d-flex justify-content-between align-items-baseline border-top pt-3 mt-3 mb-3">
+                        <span class="fw-semibold">Total</span>
+                        <span id="summary-total" class="fs-5 fw-semibold tabular-nums">-</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Submit Booking</button>
+                    <p class="text-secondary small mt-2 mb-0">Total final dihitung ulang sistem waktu booking dikirim.</p>
+                    <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@Model.Booking.MountainId" class="btn btn-link w-100 mt-1">Batal</a>
+                </div>
+            </aside>
+        </div>
     </div>
-
-    <p>
-        <button type="button" id="add-participant" class="btn btn-outline-primary">+ Tambah Peserta</button>
-    </p>
-
-    <button type="submit" class="btn btn-primary">Submit Booking</button>
-    <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@Model.Booking.MountainId" class="btn btn-link">Batal</a>
 </form>
 
 @section Scripts {
@@ -86,9 +143,38 @@
     <script>
         // Tambah/hapus peserta di sisi client. Index di name/id (Participants[0], Participants_0__)
         // harus selalu urut 0..n-1 biar model binding List<ParticipantDto> di server kebaca utuh.
+        // Ringkasan di kanan cuma perkiraan — total final tetap dihitung server.
         (function () {
             const form = document.getElementById('booking-form');
             const container = document.getElementById('participants');
+            const routeSelect = document.getElementById('Booking_HikingRouteId');
+            const dateInput = document.getElementById('Booking_ClimbDate');
+            const rupiah = new Intl.NumberFormat('id-ID');
+            const dateFormat = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+            function updateSummary() {
+                const people = container.querySelectorAll('.participant').length;
+                const option = routeSelect.selectedOptions[0];
+                const hasRoute = option && option.value !== '0';
+                const price = hasRoute ? Number(option.dataset.price) : null;
+
+                document.getElementById('participant-count').textContent = people;
+                document.getElementById('summary-route').textContent = hasRoute ? option.dataset.name : '-';
+                document.getElementById('route-quota').textContent = hasRoute && option.dataset.quota
+                    ? `Kuota jalur ini ${rupiah.format(Number(option.dataset.quota))} orang/hari.`
+                    : '';
+
+                // value input date = "yyyy-MM-dd"; diparse manual biar gak geser zona waktu.
+                const [y, m, d] = (dateInput.value || '').split('-').map(Number);
+                document.getElementById('summary-date').textContent = y ? dateFormat.format(new Date(y, m - 1, d)) : '-';
+
+                document.getElementById('summary-people').textContent = price === null
+                    ? `${people} orang`
+                    : `${people} orang × ${price > 0 ? 'Rp ' + rupiah.format(price) : 'Gratis'}`;
+                document.getElementById('summary-total').textContent = price === null
+                    ? '-'
+                    : (price > 0 ? 'Rp ' + rupiah.format(price * people) : 'Gratis');
+            }
 
             function reindex() {
                 container.querySelectorAll('.participant').forEach((block, i) => {
@@ -108,6 +194,7 @@
                 // Daftarin ulang validasi client-side buat field yang baru ditambah/di-rename.
                 $(form).removeData('validator').removeData('unobtrusiveValidation');
                 $.validator.unobtrusive.parse(form);
+                updateSummary();
             }
 
             document.getElementById('add-participant').addEventListener('click', () => {
@@ -122,6 +209,7 @@
                 });
                 container.appendChild(clone);
                 reindex();
+                clone.querySelector('input').focus();
             });
 
             container.addEventListener('click', e => {
@@ -133,6 +221,10 @@
                 e.target.closest('.participant').remove();
                 reindex();
             });
+
+            routeSelect.addEventListener('change', updateSummary);
+            dateInput.addEventListener('change', updateSummary);
+            updateSummary();
         })();
     </script>
 }
