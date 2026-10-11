@@ -151,6 +151,18 @@ public class MountainFeedTests
     }
 
     [Fact]
+    public void SiteStats_CountsMountainsRegionsAndActiveRoutes()
+    {
+        var a = M(1, island: Island.Jawa); a.RouteCount = 3;
+        var b = M(2, island: Island.Sumatra, open: false); b.RouteCount = 2;
+        var c = M(3, island: null); c.RouteCount = 1;
+        Assert.Equal(new SiteStats(3, 2, 6), MountainFeed.SiteStats([a, b, c]));
+    }
+
+    [Fact]
+    public void SiteStats_Empty_AllZero() => Assert.Equal(new SiteStats(0, 0, 0), MountainFeed.SiteStats([]));
+
+    [Fact]
     public void PickRandomPhoto_NoEligible_ReturnsNull() =>
         Assert.Null(MountainFeed.PickRandomPhoto([M(1, photo: false), M(2, open: false)], new Random(1)));
 }

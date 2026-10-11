@@ -1,10 +1,13 @@
 import { check, result } from './_assert.mjs';
 
 // Task 6: kartu gunung v2 (foto 4:3, badge di atas foto, placeholder tanpa foto, hover) + empty state ikon.
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto('http://localhost:5181/Mountain', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain`, { waitUntil: 'networkidle' });
 
   const info = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.mountain-card')];
@@ -46,7 +49,7 @@ export default async function run(page) {
   check(failures, duration.split(',').every(d => parseFloat(d) === 0), `reduced-motion: transition ${duration}`);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
-  await page.goto('http://localhost:5181/Mountain?search=zzzz', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain?search=zzzz`, { waitUntil: 'networkidle' });
   const empty = await page.evaluate(() => !!document.querySelector('.empty-state use[href$="#mountain"]'));
   check(failures, empty, 'empty state gak punya ikon gunung');
 

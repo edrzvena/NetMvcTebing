@@ -1,10 +1,13 @@
 import { check, result, trackRequests } from './_assert.mjs';
 
 // Task 4: font, warna dasar, sprite ikon, pola kontur, tanpa request ke domain lain.
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   const requests = trackRequests(page);
-  await page.goto('http://localhost:5181/', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 
   const fonts = await page.evaluate(async () => {
     await document.fonts.ready;
@@ -19,17 +22,18 @@ export default async function run(page) {
   check(failures, fonts.family.replace(/"/g, '').startsWith('Plus Jakarta Sans'), `font-family body: ${fonts.family}`);
   check(failures, fonts.bg === 'rgb(246, 243, 238)', `background body: ${fonts.bg}`);
 
-  const icons = await page.request.get('http://localhost:5181/images/icons.svg');
+  const icons = await page.request.get(`${BASE}/images/icons.svg`);
   check(failures, icons.status() === 200 && (await icons.text()).includes('id="star-fill"'), 'icons.svg gak ada / tanpa star-fill');
   // Sprite harus XML valid — kalau rusak, <use> gak nge-render apa-apa (ukuran 0) tanpa error di console.
-  await page.goto('http://localhost:5181/Mountain', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain`, { waitUntil: 'networkidle' });
   const iconBox = await page.evaluate(() => {
     const use = document.querySelector('.tb-icon use');
     return use ? use.getBBox().width : -1;
   });
   check(failures, iconBox > 0, `ikon gak ke-render (lebar bbox ${iconBox})`);
-  const contour = await page.request.get('http://localhost:5181/images/contour.svg');
-  check(failures, contour.status() === 200 && (await contour.body()).length <= 3072, 'contour.svg gak ada / > 3 KB');
+  // Pola kontur (spiral) dibuang — dekorasi tanpa makna.
+  const contour = await page.request.get(`${BASE}/images/contour.svg`);
+  check(failures, contour.status() === 404, `contour.svg masih ada (status ${contour.status()})`);
 
   const font = requests.find(r => r.url.includes('PlusJakartaSans'));
   check(failures, font, 'request file font gak ada');

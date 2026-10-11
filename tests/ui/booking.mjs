@@ -3,7 +3,7 @@ import { check, result } from './_assert.mjs';
 // Task 11 (bagian pendaki): thumbnail foto gunung di Buat Booking, Detail Booking, Booking Saya.
 // Bikin akun tes uitest@tebing.local + 1 booking di DB dev — WAJIB dihapus lagi setelah dites
 // (lihat booking-admin.mjs & langkah bersih-bersih di plan Task 11).
-const BASE = 'http://localhost:5181';
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
 const EMAIL = 'uitest@tebing.local';
 const PASSWORD = 'uitest123';
 
@@ -29,6 +29,7 @@ async function pageChecks(page, failures, label) {
 }
 
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   await page.setViewportSize({ width: 1280, height: 900 });
 

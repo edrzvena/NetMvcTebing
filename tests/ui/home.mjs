@@ -1,11 +1,14 @@
 import { check, result, trackRequests } from './_assert.mjs';
 
 // Task 7: banner carousel (manual + peek), search mengambang, chip pulau, 3 rail, 3 pembatas punggungan.
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   const requests = trackRequests(page);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto('http://localhost:5181/', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 
   const imageBytes = requests.filter(r => r.type === 'image').reduce((sum, r) => sum + r.bytes, 0);
   check(failures, imageBytes <= 500 * 1024, `foto layar pertama ${Math.round(imageBytes / 1024)} KB > 500 KB`);
@@ -96,7 +99,7 @@ export default async function run(page) {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   await page.setViewportSize({ width: 375, height: 800 });
-  await page.goto('http://localhost:5181/', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   const mobile = await page.evaluate(() => ({
     arrows: getComputedStyle(document.querySelector('.hero [data-carousel-next]')).display,
     overflow: document.documentElement.scrollWidth - innerWidth,

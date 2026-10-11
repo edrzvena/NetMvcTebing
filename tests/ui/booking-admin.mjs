@@ -2,9 +2,10 @@ import { check, result } from './_assert.mjs';
 
 // Task 11 (bagian admin): tab status Kelola Booking pakai chip. Butuh akun uitest@tebing.local yang
 // udah dijadiin Admin (Role = 1) di DB dev setelah booking.mjs — dan dihapus lagi setelahnya.
-const BASE = 'http://localhost:5181';
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
 
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${BASE}/Account/Login`);

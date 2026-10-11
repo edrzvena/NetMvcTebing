@@ -1,0 +1,12 @@
+@model Tebing.Common.Feeds.SiteStats
+@* Angka beneran dari database (bukan hiasan). Data kosong → gak dirender. *@
+@if (Model.Mountains > 0)
+{
+    <p class="footer-stats tabular-nums">
+        <strong>@Model.Mountains.ToNumber()</strong> gunung
+        <span aria-hidden="true">&middot;</span>
+        <strong>@Model.Regions.ToNumber()</strong> wilayah
+        <span aria-hidden="true">&middot;</span>
+        <strong>@Model.Routes.ToNumber()</strong> jalur
+    </p>
+}

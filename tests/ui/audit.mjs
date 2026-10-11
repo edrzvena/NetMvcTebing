@@ -1,7 +1,7 @@
 import { check, result, trackRequests } from './_assert.mjs';
 
 // Task 12: audit budget (docs/UI_UX.md §9) & checklist review (§11) di halaman utama, 1280 & 375.
-const BASE = 'http://localhost:5181';
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
 const KB = 1024;
 
 async function detailUrl(page, name) {
@@ -26,6 +26,7 @@ async function pixel(page, x, y) {
 }
 
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   const gede = await detailUrl(page, 'Gunung Gede');
   const klabat = await detailUrl(page, 'Gunung Klabat');
@@ -61,7 +62,7 @@ export default async function run(page) {
       });
       check(failures, info.cls < 0.05, `${label}: CLS ${info.cls.toFixed(3)}`);
       check(failures, info.ridges === expectedRidges, `${label}: pembatas ${info.ridges}/${expectedRidges}`);
-      check(failures, info.ridgeBytes <= 8 * KB - 2722, `${label}: markup pembatas ${info.ridgeBytes} B (+ contour.svg) > 8 KB`);
+      check(failures, info.ridgeBytes <= 8 * KB, `${label}: markup pembatas ${info.ridgeBytes} B > 8 KB`);
       check(failures, info.hexStyle === 0, `${label}: ${info.hexStyle} elemen pakai hex di atribut style`);
       check(failures, info.overflow <= 0, `${label}: scroll horizontal ${info.overflow}px`);
 

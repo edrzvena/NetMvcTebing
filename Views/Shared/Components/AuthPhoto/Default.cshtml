@@ -1,6 +1,6 @@
 @model Tebing.DTOs.Mountain.MountainListDto?
-@* Panel kiri halaman akun. Null = belum ada gunung berfoto → blok hijau gelap + garis kontur. *@
-<aside class="auth-photo @(Model is null ? "bg-contour" : "")" aria-label="Foto gunung">
+@* Panel kiri halaman akun. Null = belum ada gunung berfoto → blok hijau gelap polos. *@
+<aside class="auth-photo @(Model is null ? "auth-photo--empty" : "")" aria-label="Foto gunung">
     @if (Model?.ImagePath is { } imagePath)
     {
         @* <picture> + media query: di HP (< 992px) yang kepake cuma GIF kosong 1px, jadi foto 1200 gak ikut ke-download. *@

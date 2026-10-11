@@ -43,6 +43,8 @@ public class MountainService(
     public async Task<List<MountainListDto>> GetSameIslandAsync(int mountainId, Island? island, int count) =>
         MountainFeed.SameIsland(await GetAllAsync(island: island), mountainId, island, count);
 
+    public async Task<SiteStats> GetSiteStatsAsync() => MountainFeed.SiteStats(await GetAllAsync());
+
     public async Task<MountainListDto?> GetRandomPhotoAsync() =>
         MountainFeed.PickRandomPhoto(await GetAllAsync(), Random.Shared);
 

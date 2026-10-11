@@ -1,11 +1,14 @@
 import { check, result } from './_assert.mjs';
 
 // Task 5: navbar sticky 64px + menu aktif, footer hijau gelap 3 kolom + ridge di atasnya.
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto('http://localhost:5181/Mountain', { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/Mountain`, { waitUntil: 'networkidle' });
     const info = await page.evaluate(() => {
       const nav = document.querySelector('header nav.navbar');
       const footer = document.querySelector('footer.site-footer');
@@ -21,6 +24,8 @@ export default async function run(page) {
         islandLinks: footer ? footer.querySelectorAll('a[href*="island="]').length : 0,
         ridges: document.querySelectorAll('svg.ridge').length,
         ridgeInFooter: !!footer?.querySelector('svg.ridge'),
+        contour: !!document.querySelector('.bg-contour'),
+        stats: footer?.querySelector('.footer-stats')?.textContent.replace(/\s+/g, ' ').trim() ?? '',
         activeMenu: [...document.querySelectorAll('.navbar .nav-link.active')].map(a => a.textContent.trim()),
         overflow: document.documentElement.scrollWidth - innerWidth,
       };
@@ -34,6 +39,9 @@ export default async function run(page) {
     check(failures, info.islandLinks === 6, `link pulau di footer ${info.islandLinks}/6`);
     check(failures, info.ridges === 1 && info.ridgeInFooter, `ridge di /Mountain: ${info.ridges}, di footer: ${info.ridgeInFooter}`);
     check(failures, info.activeMenu.includes('Gunung'), `menu aktif: ${info.activeMenu}`);
+    check(failures, !info.contour, `${width}: pola kontur masih dipakai`);
+    // Angka nyata dari database, bukan teks tetap.
+    check(failures, /^\d+ gunung · \d+ wilayah · \d+ jalur$/.test(info.stats), `${width}: strip angka footer: "${info.stats}"`);
     check(failures, info.overflow <= 0, `${width}: scroll horizontal ${info.overflow}px`);
   }
   return result(failures);

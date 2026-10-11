@@ -2,12 +2,15 @@ import { check, result } from './_assert.mjs';
 
 // Task 9: Detail Gunung — header foto full-bleed, 4 stat tile, panel booking sticky, rail pulau yang sama, 2 pembatas.
 async function detailUrl(page, name) {
-  await page.goto(`http://localhost:5181/Mountain?search=${encodeURIComponent(name)}`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain?search=${encodeURIComponent(name)}`, { waitUntil: 'networkidle' });
   return page.evaluate(n => [...document.querySelectorAll('.mountain-card a.stretched-link')]
     .find(a => a.textContent.trim() === n)?.href, name);
 }
 
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   await page.setViewportSize({ width: 1280, height: 900 });
   const gede = await detailUrl(page, 'Gunung Gede');

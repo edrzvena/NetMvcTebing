@@ -50,6 +50,7 @@ Referensi pola: AllTrails & Komoot (kartu jalur foto-forward, info inti di kartu
 | Emoji di UI (🏔️✨🚀) | Ikon SVG dari sprite (§3.5). |
 | Wave divider (gelombang sinus) ala template landing page | Pembatas bentuk **punggungan gunung** (§4.15) — tajam tapi ujungnya agak membulat, berlapis. |
 | Pembatas bentuk di setiap section | Maks 3 per halaman, cuma di halaman "jalan-jalan" (§4.15). |
+| Pola/tekstur dekoratif tanpa makna (garis kontur, spiral, noise, blob) | Warna polos. Kalau area kosong, isi pakai info nyata (§4.16), bukan hiasan. |
 | Ilustrasi 3D/blob, foto stok generik | Foto gunung asli dari data. Gunung tanpa foto → kartu tetap rapi tanpa foto (§4.4). |
 | Copy lebay ("Taklukkan puncak impianmu! 🚀") | Kalimat lugas yang ngasih info. Boleh hangat, gak boleh lebay. |
 | Animasi lebay (bounce, parallax, scale besar) | Transisi `transform`/`opacity` ≤ 200ms, geser 2px maksimal (§3.6). |
@@ -343,10 +344,12 @@ Cocok buat pemula                    Lihat semua →  ‹ ›   ← panah cuma d
 - Kanan: belum login → "Masuk" (link) + `btn-primary btn-sm` "Daftar"; udah login → nama (muted) +
   `btn-outline-secondary btn-sm` "Keluar". Mobile: collapse bawaan Bootstrap.
 
-**Footer:** background `--tb-forest` + pola garis kontur (§4.16), teks putih/`rgba(255,255,255,.72)`, `py-5`.
+**Footer:** background `--tb-forest` polos + strip angka (§4.16), teks putih/`rgba(255,255,255,.72)`, `py-5`.
 Di atas footer selalu ada pembatas punggungan (§4.15) warna `--tb-forest`.
 
 ```
+46 gunung · 5 wilayah · 69 jalur                          ← strip angka §4.16
+─────────────────────────────────────────────────────────────
 Tebing                      Jelajah                 Bantuan
 Booking pendakian gunung    Jawa                    Cara booking (→ Home#cara-kerja)
 se-Indonesia, tanpa antre   Sumatra                 Kebijakan Privasi
@@ -469,15 +472,20 @@ __/          \__/                         \_/  \___  ← lapis depan   (solid)
   | Akun (Masuk, Daftar, Lupa/Reset Password) | gak ada — layout terbelah full tinggi tanpa footer (§5.8) | 0 |
 - Gak dianimasiin. Gak dipakai di dalam card.
 
-### 4.16 Pola Garis Kontur — **baru**
+### 4.16 Strip Angka Footer — **baru**
 
-Garis kontur peta topografi sebagai tekstur halus, biar nuansa "peta pendakian" kerasa.
+Baris paling atas footer: angka nyata dari database, bukan hiasan.
 
-- 1 file `wwwroot/images/contour.svg` (garis kontur lengkung, stroke putih 1px, ±3 KB), dipakai
-  sebagai `background-image` dengan `opacity` efektif ±6–8% (warna stroke `rgba(255,255,255,.07)`).
-- **Cuma di 2 tempat:** footer (`--tb-forest`) dan panel foto halaman akun kalau gunungnya gak punya
-  foto. Gak di atas foto, gak di background halaman, gak di card.
-- Dekoratif murni — konten di atasnya tetap harus lolos kontras tanpa ngitung polanya.
+```
+46 gunung · 5 wilayah · 69 jalur
+```
+
+- Angka = semua gunung · wilayah (pulau) yang punya gunung · total jalur aktif (`MountainFeed.SiteStats`).
+  Angka 700–800 putih, label muted. Data kosong → gak dirender.
+- Dirender lewat ViewComponent `FooterStats`, **di-cache 10 menit** (`IMemoryCache`) — footer muncul
+  di tiap halaman, angka segini gak perlu real-time.
+- Sempat pakai pola garis kontur topografi sebagai tekstur footer — **dibuang**: di layar kebaca
+  sebagai spiral acak tanpa makna (dekorasi AI slop). Footer & panel foto akun tanpa foto = hijau gelap polos.
 
 ---
 
@@ -511,7 +519,7 @@ CARA KERJANYA  (id="cara-kerja")      ← section background putih
  1 Pilih gunung      2 Isi data            3 Upload bukti        4 Naik & kasih
    & jalur             rombongan             bayar                 ulasan
 __/\__/\_____/\/\_______  ← pembatas (→ hijau gelap), varian A flip
-[footer hijau gelap + garis kontur §4.16]
+[footer hijau gelap + strip angka §4.16]
 ```
 
 - Rail "Gunung pilihan" = urutan sama kayak banner, **lewati 5 yang udah di banner**.
@@ -662,7 +670,7 @@ Budget per halaman (diukur di DevTools, cache kosong, lebar 1280 & 375):
 | Foto yang ke-download waktu halaman pertama kebuka (Home) | ≤ 500 KB |
 | Font | ≤ 100 KB (1 file variable woff2) |
 | JS tambahan selain yang udah ada | ≤ 5 KB (`carousel.js`) |
-| Dekorasi (pembatas punggungan inline + `contour.svg`) | ≤ 8 KB total per halaman |
+| Dekorasi (markup pembatas punggungan inline) | ≤ 8 KB total per halaman |
 | Layout shift (CLS) | ≈ 0 — semua foto punya `width`/`height` atau `ratio` |
 
 Aturan:
@@ -680,7 +688,7 @@ Aturan:
    `carousel.js`.
 2. **Layout global** — navbar baru (logo SVG, garis aktif amber), footer hijau gelap.
 3. **Komponen** — kartu gunung v2, `_ChipNav`, `_MountainRail`, `_HeroCarousel`, `_StatTile`,
-   `_RidgeDivider` + `contour.svg`,
+   `_RidgeDivider`, strip angka footer (`FooterStats`),
    empty state + ikon.
 4. **Backend kecil** — `IslandRegion` (mapping provinsi → pulau + filter `island`), data Home
    (banner + 3 rail), "gunung lain di pulau yang sama".

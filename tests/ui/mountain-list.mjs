@@ -3,10 +3,13 @@ import { check, result } from './_assert.mjs';
 // Task 8: Daftar Gunung — header eyebrow, chip pulau (bawa filter lain), grid kartu v2, 1 pembatas.
 const JAWA = ['Jawa', 'Banten', 'Jakarta', 'Yogyakarta'];
 
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto('http://localhost:5181/Mountain', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain`, { waitUntil: 'networkidle' });
 
   const info = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.mountain-grid .mountain-card')];
@@ -35,11 +38,11 @@ export default async function run(page) {
   check(failures, info.loading.slice(6).every(l => l === 'lazy' || l === 'none') && photoLoading.length > 6, 'kartu setelah 6 gak lazy');
   check(failures, info.ridges === 1, `pembatas ${info.ridges}/1`);
 
-  await page.goto('http://localhost:5181/Mountain?search=gunung&difficulty=Hard', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain?search=gunung&difficulty=Hard`, { waitUntil: 'networkidle' });
   const jawaHref = await page.evaluate(() => [...document.querySelectorAll('.chip-nav a')].find(a => a.textContent.includes('Jawa'))?.getAttribute('href') ?? '');
   check(failures, jawaHref.includes('island=Jawa') && jawaHref.includes('search=gunung') && jawaHref.includes('difficulty=Hard'), `chip Jawa href: ${jawaHref}`);
 
-  await page.goto('http://localhost:5181/Mountain?island=Jawa', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain?island=Jawa`, { waitUntil: 'networkidle' });
   const jawa = await page.evaluate(() => ({
     active: [...document.querySelectorAll('.chip-nav a[aria-current=page]')].map(a => a.textContent.trim()),
     provinces: [...document.querySelectorAll('.mountain-card .mountain-card__meta .text-nowrap:first-child')].map(s => s.textContent.trim()),
@@ -48,7 +51,7 @@ export default async function run(page) {
   check(failures, jawa.provinces.length > 0 && jawa.provinces.every(p => JAWA.some(j => p.includes(j))), `provinsi bukan Jawa: ${jawa.provinces.filter(p => !JAWA.some(j => p.includes(j)))}`);
 
   await page.setViewportSize({ width: 375, height: 800 });
-  await page.goto('http://localhost:5181/Mountain', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Mountain`, { waitUntil: 'networkidle' });
   const mobile = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('.mountain-grid .mountain-card')].slice(0, 2);
     return { oneColumn: cards.length === 2 && cards[0].getBoundingClientRect().top !== cards[1].getBoundingClientRect().top,

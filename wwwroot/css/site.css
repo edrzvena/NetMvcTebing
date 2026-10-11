@@ -483,13 +483,6 @@ a:focus-visible {
   transform: scaleX(-1);
 }
 
-/* ---------- Pola garis kontur (§4.16) ---------- */
-
-.bg-contour {
-  background-image: url("../images/contour.svg");
-  background-size: 600px 400px;
-}
-
 /* ---------- Gerak (§3.6) ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -548,6 +541,24 @@ a:focus-visible {
 
 .site-footer li + li {
   margin-top: 0.375rem;
+}
+
+/* Strip angka nyata di atas kolom footer (§4.16). */
+.footer-stats {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+  font-size: 1.125rem;
+}
+
+.footer-stats strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.footer-stats span {
+  margin-inline: 0.5rem;
 }
 
 .site-footer__brand {
@@ -1209,7 +1220,7 @@ a:focus-visible {
   background: var(--tb-overlay);
 }
 
-.auth-photo.bg-contour::after {
+.auth-photo--empty::after {
   content: none;
 }
 

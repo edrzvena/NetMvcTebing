@@ -96,11 +96,12 @@ else
     </main>
 }
 
-<footer class="site-footer bg-contour">
+<footer class="site-footer">
     <div class="site-footer__ridge">
         <partial name="_RidgeDivider" model="@(new RidgeDividerViewModel(RidgeVariant.A, Flip: true))"/>
     </div>
     <div class="container py-5">
+        @await Component.InvokeAsync("FooterStats")
         <div class="row g-4">
             <div class="col-md-5">
                 <p class="site-footer__brand d-inline-flex align-items-center gap-2 mb-2">

@@ -1,12 +1,15 @@
 import { check, result, trackRequests } from './_assert.mjs';
 
 // Task 10: halaman akun terbelah — panel foto di desktop, HP gak download foto sama sekali, tanpa footer/pembatas.
+let BASE; // diisi dari URL yang dibuka runner (lihat run())
+
 export default async function run(page) {
+  BASE = new URL(page.url()).origin;
   const failures = [];
 
   await page.setViewportSize({ width: 1280, height: 900 });
   for (const path of ['/Account/Login', '/Account/Register', '/Account/ForgotPassword']) {
-    await page.goto(`http://localhost:5181${path}`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
     const info = await page.evaluate(() => {
       const photo = document.querySelector('.auth-photo');
       const form = document.querySelector('.auth-wrapper');
@@ -29,7 +32,7 @@ export default async function run(page) {
   // HP: panel disembunyiin DAN fotonya gak ke-download.
   const requests = trackRequests(page);
   await page.setViewportSize({ width: 375, height: 800 });
-  await page.goto('http://localhost:5181/Account/Login', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/Account/Login`, { waitUntil: 'networkidle' });
   const mobile = await page.evaluate(() => {
     const photo = document.querySelector('.auth-photo');
     return { display: photo ? getComputedStyle(photo).display : 'missing', overflow: document.documentElement.scrollWidth - innerWidth };

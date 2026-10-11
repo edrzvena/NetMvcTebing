@@ -22,6 +22,9 @@ public interface IMountainService
 
     Task<List<MountainListDto>> GetSameIslandAsync(int mountainId, Island? island, int count);
 
+    // Angka ringkas buat footer (jumlah gunung, wilayah, jalur aktif).
+    Task<SiteStats> GetSiteStatsAsync();
+
     // Foto acak buat panel kiri halaman akun. Null = belum ada gunung Open yang punya foto.
     Task<MountainListDto?> GetRandomPhotoAsync();
 

@@ -6,6 +6,9 @@ namespace Tebing.Common.Feeds;
 
 public record IslandCount(Island Island, int Count);
 
+// Angka ringkas buat footer: semua gunung, jumlah wilayah yang punya gunung, total jalur aktif.
+public record SiteStats(int Mountains, int Regions, int Routes);
+
 public record HomeFeed(
     List<MountainListDto> Featured,
     List<MountainListDto> Picks,
@@ -49,6 +52,9 @@ public static class MountainFeed
             .OrderBy(g => g.Key)
             .Select(g => new IslandCount(g.Key, g.Count()))
             .ToList();
+
+    public static SiteStats SiteStats(IReadOnlyList<MountainListDto> all) =>
+        new(all.Count, IslandSummary(all).Count, all.Sum(m => m.RouteCount));
 
     public static List<MountainListDto> SameIsland(IReadOnlyList<MountainListDto> all, int mountainId,
         Island? island, int count)
