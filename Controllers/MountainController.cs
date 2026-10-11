@@ -49,9 +49,16 @@ public class MountainController(IMountainService mountainService) : Controller
             return View(dto);
         }
 
-        var id = await mountainService.CreateAsync(dto);
+        var result = await mountainService.CreateAsync(dto);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(nameof(dto.Image), result.Error ?? "Foto gagal disimpan.");
+            await SetProvincesAsync();
+            return View(dto);
+        }
+
         TempData["SuccessMessage"] = "Data gunung berhasil ditambahkan.";
-        return RedirectToAction(nameof(Detail), new { id });
+        return RedirectToAction(nameof(Detail), new { id = result.MountainId });
     }
 
     [Authorize(Roles = "Admin")]
@@ -72,7 +79,9 @@ public class MountainController(IMountainService mountainService) : Controller
             Difficulty = mountain.Difficulty,
             Status = mountain.Status,
             Description = mountain.Description,
-            ImageUrl = mountain.ImageUrl
+            CurrentImagePath = mountain.ImagePath,
+            ImageCredit = mountain.ImageCredit,
+            ImageSourceUrl = mountain.ImageSourceUrl
         });
     }
 
@@ -87,9 +96,16 @@ public class MountainController(IMountainService mountainService) : Controller
             return View(dto);
         }
 
-        var success = await mountainService.UpdateAsync(dto);
-        if (!success)
+        var result = await mountainService.UpdateAsync(dto);
+        if (result.NotFound)
             return NotFound();
+
+        if (!result.Success)
+        {
+            ModelState.AddModelError(nameof(dto.Image), result.Error ?? "Foto gagal disimpan.");
+            await SetProvincesAsync();
+            return View(dto);
+        }
 
         TempData["SuccessMessage"] = "Data gunung berhasil diperbarui.";
         return RedirectToAction(nameof(Detail), new { id = dto.Id });

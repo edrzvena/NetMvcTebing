@@ -10,7 +10,8 @@ namespace Tebing.Services.Implementations;
 public class MountainService(
     IMountainRepository mountainRepository,
     IHikingRouteRepository routeRepository,
-    IReviewRepository reviewRepository) : IMountainService
+    IReviewRepository reviewRepository,
+    IMountainImageService imageService) : IMountainService
 {
     public async Task<List<MountainListDto>> GetAllAsync(string? search = null, string? province = null,
         DifficultyLevel? difficulty = null)
@@ -58,8 +59,17 @@ public class MountainService(
         return dto;
     }
 
-    public async Task<int> CreateAsync(MountainCreateDto dto)
+    public async Task<MountainResult> CreateAsync(MountainCreateDto dto)
     {
+        string? imagePath = null;
+        if (dto.Image is not null)
+        {
+            var saved = await imageService.SaveAsync(dto.Image);
+            if (!saved.Success)
+                return new MountainResult(false, saved.Error);
+            imagePath = saved.ImagePath;
+        }
+
         var mountain = new Mountain
         {
             Name = dto.Name,
@@ -68,20 +78,39 @@ public class MountainService(
             Difficulty = dto.Difficulty,
             Status = dto.Status,
             Description = dto.Description,
-            ImageUrl = dto.ImageUrl
+            ImagePath = imagePath,
+            ImageCredit = imagePath is null ? null : dto.ImageCredit,
+            ImageSourceUrl = imagePath is null ? null : dto.ImageSourceUrl
         };
 
         await mountainRepository.AddAsync(mountain);
         await mountainRepository.SaveChangesAsync();
 
-        return mountain.Id;
+        return new MountainResult(true, MountainId: mountain.Id);
     }
 
-    public async Task<bool> UpdateAsync(MountainUpdateDto dto)
+    public async Task<MountainResult> UpdateAsync(MountainUpdateDto dto)
     {
         var mountain = await mountainRepository.GetByIdAsync(dto.Id);
         if (mountain is null)
-            return false;
+            return new MountainResult(false, NotFound: true);
+
+        // File foto lama baru dihapus setelah data baru tersimpan, biar gak ada gunung yang nunjuk ke file hilang.
+        var oldImagePath = mountain.ImagePath;
+        if (dto.Image is not null)
+        {
+            var saved = await imageService.SaveAsync(dto.Image);
+            if (!saved.Success)
+                return new MountainResult(false, saved.Error);
+            mountain.ImagePath = saved.ImagePath;
+        }
+        else if (dto.RemoveImage)
+        {
+            mountain.ImagePath = null;
+        }
+
+        mountain.ImageCredit = mountain.ImagePath is null ? null : dto.ImageCredit;
+        mountain.ImageSourceUrl = mountain.ImagePath is null ? null : dto.ImageSourceUrl;
 
         mountain.Name = dto.Name;
         mountain.Province = dto.Province;
@@ -89,12 +118,14 @@ public class MountainService(
         mountain.Difficulty = dto.Difficulty;
         mountain.Status = dto.Status;
         mountain.Description = dto.Description;
-        mountain.ImageUrl = dto.ImageUrl;
 
         mountainRepository.Update(mountain);
         await mountainRepository.SaveChangesAsync();
 
-        return true;
+        if (oldImagePath != mountain.ImagePath)
+            imageService.Delete(oldImagePath);
+
+        return new MountainResult(true, MountainId: mountain.Id);
     }
 
     // Ditutup (Status = Closed), bukan dihapus dari database — jaga integritas relasi ke

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Tebing.Common.Enums;
 
 namespace Tebing.DTOs.Mountain;
@@ -15,5 +16,16 @@ public class MountainUpdateDto
     [Display(Name = "Status")] public MountainStatus Status { get; set; }
 
     [Display(Name = "Deskripsi")] public string? Description { get; set; }
-    [Display(Name = "URL Gambar")] public string? ImageUrl { get; set; }
+    // Foto baru (opsional). Diproses server jadi WebP 16:9 ukuran 640 & 1200 — file aslinya gak disimpan.
+    [Display(Name = "Foto")] public IFormFile? Image { get; set; }
+
+    [MaxLength(300), Display(Name = "Kredit foto")] public string? ImageCredit { get; set; }
+
+    [MaxLength(500), Url(ErrorMessage = "Link sumber harus URL lengkap, misal https://..."), Display(Name = "Link sumber foto")]
+    public string? ImageSourceUrl { get; set; }
+
+    // Cuma buat preview di form; yang dipakai buat simpan/hapus file tetap data dari database.
+    [ValidateNever] public string? CurrentImagePath { get; set; }
+
+    [Display(Name = "Hapus foto")] public bool RemoveImage { get; set; }
 }

@@ -89,11 +89,33 @@
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card">
-            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            @if (Model.ImagePath is { } imagePath)
             {
-                <div class="ratio ratio-16x9">
-                    <img src="@Model.ImageUrl" alt="@Model.Name" class="card-img-top object-fit-cover"/>
-                </div>
+                @* Foto di atas lipatan → gak di-lazy-load, malah diprioritasin (elemen terbesar di layar).
+                   Browser milih sendiri 640 atau 1200 sesuai lebar layar & kepadatan pikselnya. *@
+                <figure class="mb-0">
+                    <div class="ratio ratio-16x9 bg-body-tertiary">
+                        <img src="@MountainImageProcessor.Url(imagePath, 1200)"
+                             srcset="@MountainImageProcessor.Url(imagePath, 640) 640w, @MountainImageProcessor.Url(imagePath, 1200) 1200w"
+                             sizes="(min-width: 1400px) 856px, (min-width: 992px) 66vw, 100vw"
+                             width="1200" height="675" alt="@Model.Name" fetchpriority="high" decoding="async"
+                             class="card-img-top object-fit-cover"/>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.ImageCredit))
+                    {
+                        <figcaption class="small text-secondary px-3 px-lg-4 py-2">
+                            Foto:
+                            @if (!string.IsNullOrEmpty(Model.ImageSourceUrl))
+                            {
+                                <a href="@Model.ImageSourceUrl" target="_blank" rel="noopener" class="link-secondary">@Model.ImageCredit</a>
+                            }
+                            else
+                            {
+                                @Model.ImageCredit
+                            }
+                        </figcaption>
+                    }
+                </figure>
             }
 
             @if (!string.IsNullOrEmpty(Model.Description))

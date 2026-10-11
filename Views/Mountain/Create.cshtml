@@ -18,7 +18,7 @@
 
 <div class="card form-narrow">
     <div class="card-body p-3 p-lg-4">
-        <form asp-action="Create" method="post">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <section class="mb-4">
                 <h2 class="h3 border-bottom pb-2 mb-3">Info dasar</h2>
@@ -70,9 +70,25 @@
                     <textarea asp-for="Description" class="form-control" rows="4"></textarea>
                 </div>
                 <div class="mb-3">
-                    <label asp-for="ImageUrl" class="form-label">URL gambar <span class="text-secondary">(opsional)</span></label>
-                    <input asp-for="ImageUrl" class="form-control" aria-describedby="image-help"/>
-                    <div id="image-help" class="form-text">Tampil di halaman detail gunung dengan rasio 16:9.</div>
+                    <label asp-for="Image" class="form-label">Foto <span class="text-secondary">(opsional)</span></label>
+                    <input asp-for="Image" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control" aria-describedby="image-help"/>
+                    <div id="image-help" class="form-text">
+                        JPG, PNG, atau WebP, maks. 5 MB. Otomatis dipotong 16:9 dan diperkecil biar ringan dibuka.
+                    </div>
+                    <span asp-validation-for="Image" class="text-danger small"></span>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label asp-for="ImageCredit" class="form-label">Kredit foto <span class="text-secondary">(opsional)</span></label>
+                        <input asp-for="ImageCredit" class="form-control" placeholder="misal: Nama / CC BY-SA 4.0" aria-describedby="credit-help"/>
+                        <div id="credit-help" class="form-text">Wajib diisi kalau fotonya berlisensi CC.</div>
+                        <span asp-validation-for="ImageCredit" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="ImageSourceUrl" class="form-label">Link sumber <span class="text-secondary">(opsional)</span></label>
+                        <input asp-for="ImageSourceUrl" class="form-control" inputmode="url" placeholder="https://"/>
+                        <span asp-validation-for="ImageSourceUrl" class="text-danger small"></span>
+                    </div>
                 </div>
             </section>
 

@@ -228,17 +228,27 @@ public static class DbSeeder
         string description, params HikingRoute[] routes) =>
         Mountain(name, province, heightMeters, difficulty, description, MountainStatus.Open, routes);
 
+    // Foto diambil dari SeedMountainImages. Gunung seed yang udah ada di DB sebelum foto ditambahkan
+    // diisi lewat migration AddMountainImages (sekali jalan), bukan di sini — biar foto yang sengaja
+    // dihapus admin gak balik lagi tiap app start.
     private static Mountain Mountain(string name, string province, int heightMeters, DifficultyLevel difficulty,
-        string description, MountainStatus status, params HikingRoute[] routes) => new()
+        string description, MountainStatus status, params HikingRoute[] routes)
     {
-        Name = name,
-        Province = province,
-        HeightMeters = heightMeters,
-        Difficulty = difficulty,
-        Status = status,
-        Description = description,
-        Routes = routes.ToList()
-    };
+        var image = SeedMountainImages.ByMountainName.GetValueOrDefault(name);
+        return new Mountain
+        {
+            Name = name,
+            Province = province,
+            HeightMeters = heightMeters,
+            Difficulty = difficulty,
+            Status = status,
+            Description = description,
+            ImagePath = image?.ImagePath,
+            ImageCredit = image?.Credit,
+            ImageSourceUrl = image?.SourceUrl,
+            Routes = routes.ToList()
+        };
+    }
 
     private static HikingRoute Route(string name, decimal distanceKm, string duration, int? dailyQuota,
         decimal pricePerPerson) => new()

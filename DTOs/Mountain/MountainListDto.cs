@@ -10,7 +10,8 @@ public class MountainListDto
     public int HeightMeters { get; set; }
     public DifficultyLevel Difficulty { get; set; }
     public MountainStatus Status { get; set; }
-    public string? ImageUrl { get; set; }
+    // Path dasar foto (lihat MountainImageProcessor.Url). Null = belum ada foto.
+    public string? ImagePath { get; set; }
 
     // Null = belum ada review.
     public double? AverageRating { get; set; }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore; // library ef core, orm nya .NET
+using Microsoft.Extensions.FileProviders;
 using Tebing.Data;
 using Tebing.Data.Seed;
 using Tebing.Repositories.Implementations;
@@ -42,6 +43,7 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMountainService, MountainService>();
+builder.Services.AddScoped<IMountainImageService, MountainImageService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
@@ -75,6 +77,18 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/Home/HttpStatus", "?code={0}");
 
 app.UseHttpsRedirection();
+
+// Foto gunung upload admin ditambah waktu app jalan, jadi gak ada di manifest build MapStaticAssets —
+// disajikan terpisah. Nama file-nya unik & gak pernah ditimpa, jadi boleh di-cache browser selamanya.
+var mountainUploadFolder = Path.Combine(app.Environment.WebRootPath, "uploads", "mountains");
+Directory.CreateDirectory(mountainUploadFolder);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(mountainUploadFolder),
+    RequestPath = MountainImageService.UploadRequestPath,
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable"
+});
+
 app.UseRouting();
 
 app.UseAuthentication();

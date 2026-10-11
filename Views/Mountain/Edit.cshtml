@@ -19,7 +19,7 @@
 
 <div class="card form-narrow">
     <div class="card-body p-3 p-lg-4">
-        <form asp-action="Edit" method="post">
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
             <input type="hidden" asp-for="Id"/>
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <section class="mb-4">
@@ -71,10 +71,39 @@
                     <label asp-for="Description" class="form-label">Deskripsi <span class="text-secondary">(opsional)</span></label>
                     <textarea asp-for="Description" class="form-control" rows="4"></textarea>
                 </div>
+                <input type="hidden" asp-for="CurrentImagePath"/>
+                @if (Model.CurrentImagePath is { } currentImage)
+                {
+                    <div class="mb-3">
+                        <p class="form-label mb-2">Foto sekarang</p>
+                        <img src="@MountainImageProcessor.Url(currentImage, 640)" alt="Foto @Model.Name sekarang"
+                             width="320" height="180" class="rounded border d-block mb-2 img-fluid"/>
+                        <div class="form-check">
+                            <input asp-for="RemoveImage" class="form-check-input"/>
+                            <label asp-for="RemoveImage" class="form-check-label"></label>
+                        </div>
+                    </div>
+                }
                 <div class="mb-3">
-                    <label asp-for="ImageUrl" class="form-label">URL gambar <span class="text-secondary">(opsional)</span></label>
-                    <input asp-for="ImageUrl" class="form-control" aria-describedby="image-help"/>
-                    <div id="image-help" class="form-text">Tampil di halaman detail gunung dengan rasio 16:9.</div>
+                    <label asp-for="Image" class="form-label">Ganti foto <span class="text-secondary">(opsional)</span></label>
+                    <input asp-for="Image" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control" aria-describedby="image-help"/>
+                    <div id="image-help" class="form-text">
+                        JPG, PNG, atau WebP, maks. 5 MB. Otomatis dipotong 16:9 dan diperkecil biar ringan dibuka.
+                    </div>
+                    <span asp-validation-for="Image" class="text-danger small"></span>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label asp-for="ImageCredit" class="form-label">Kredit foto <span class="text-secondary">(opsional)</span></label>
+                        <input asp-for="ImageCredit" class="form-control" placeholder="misal: Nama / CC BY-SA 4.0" aria-describedby="credit-help"/>
+                        <div id="credit-help" class="form-text">Wajib diisi kalau fotonya berlisensi CC.</div>
+                        <span asp-validation-for="ImageCredit" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="ImageSourceUrl" class="form-label">Link sumber <span class="text-secondary">(opsional)</span></label>
+                        <input asp-for="ImageSourceUrl" class="form-control" inputmode="url" placeholder="https://"/>
+                        <span asp-validation-for="ImageSourceUrl" class="text-danger small"></span>
+                    </div>
                 </div>
             </section>
 

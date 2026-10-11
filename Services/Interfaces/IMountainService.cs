@@ -3,6 +3,9 @@ using Tebing.DTOs.Mountain;
 
 namespace Tebing.Services.Interfaces;
 
+// Error = pesan buat ditampilin di form (misal foto gak valid). NotFound = gunungnya gak ada.
+public record MountainResult(bool Success, string? Error = null, int? MountainId = null, bool NotFound = false);
+
 public interface IMountainService
 {
     Task<List<MountainListDto>> GetAllAsync(string? search = null, string? province = null,
@@ -14,8 +17,8 @@ public interface IMountainService
 
     Task<List<string>> GetProvincesAsync();
     Task<MountainDetailDto?> GetByIdAsync(int id);
-    Task<int> CreateAsync(MountainCreateDto dto);
-    Task<bool> UpdateAsync(MountainUpdateDto dto);
+    Task<MountainResult> CreateAsync(MountainCreateDto dto);
+    Task<MountainResult> UpdateAsync(MountainUpdateDto dto);
     Task<bool> CloseAsync(int id);
 
     Task<RouteDto?> GetRouteByIdAsync(int routeId);

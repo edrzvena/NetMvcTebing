@@ -73,3 +73,7 @@ appsettings.*.local.json
 
 # Upload file user (bukti transfer, dst) — jangan ikut ke-commit
 App_Data/
+
+# Foto gunung yang diupload admin (hasil resize, disajikan publik) — jangan ikut ke-commit.
+# Foto contoh hasil seed ada di wwwroot/images/mountains/ dan ikut di-commit.
+wwwroot/uploads/
