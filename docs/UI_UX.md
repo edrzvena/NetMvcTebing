@@ -465,7 +465,8 @@ __/          \__/                         \_/  \___  ← lapis depan   (solid)
   | Home | bawah banner (→ krem) · masuk ke section "Cara kerjanya" (→ putih) · masuk ke footer (→ hijau gelap) | 3 (maks) |
   | Daftar Gunung | masuk ke footer | 1 |
   | Detail Gunung | bawah header foto (→ krem) · masuk ke footer | 2 |
-  | Akun, booking, admin, form, error | masuk ke footer aja — halaman kerja, tetap fokus | 1 |
+  | Booking, admin, form, error | masuk ke footer aja — halaman kerja, tetap fokus | 1 |
+  | Akun (Masuk, Daftar, Lupa/Reset Password) | gak ada — layout terbelah full tinggi tanpa footer (§5.8) | 0 |
 - Gak dianimasiin. Gak dipakai di dalam card.
 
 ### 4.16 Pola Garis Kontur — **baru**
