@@ -17,6 +17,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <!-- Project test ada di dalam folder project web; tanpa ini file test ikut ke-compile ke app. -->
+      <Compile Remove="tests\**" />
+      <Content Remove="tests\**" />
+      <None Remove="tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
