@@ -9,6 +9,7 @@ public class BookingCreateViewModel
 
     // Data tambahan khusus tampilan — gak ikut dikirim ke Service.
     [ValidateNever] public string MountainName { get; set; } = string.Empty;
+    [ValidateNever] public string? MountainImagePath { get; set; }
 
     // Jalur aktif buat dropdown. Harga ikut dikirim ke view (data-price) biar ringkasan total bisa
     // di-update live di browser — total final tetap dihitung ulang di server.

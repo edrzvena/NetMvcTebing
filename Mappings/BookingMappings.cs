@@ -11,6 +11,7 @@ public static class BookingMappings
     {
         Id = booking.Id,
         MountainName = booking.Mountain.Name,
+        MountainImagePath = booking.Mountain.ImagePath,
         RouteName = booking.HikingRoute.Name,
         ClimbDate = booking.ClimbDate,
         NumberOfPeople = booking.NumberOfPeople,
@@ -30,6 +31,7 @@ public static class BookingMappings
         UserEmail = booking.User.Email,
         MountainId = booking.MountainId,
         MountainName = booking.Mountain.Name,
+        MountainImagePath = booking.Mountain.ImagePath,
         RouteName = booking.HikingRoute.Name,
         ClimbDate = booking.ClimbDate,
         NumberOfPeople = booking.NumberOfPeople,

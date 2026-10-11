@@ -8,7 +8,7 @@ namespace Tebing.Repositories.Implementations;
 
 public class MountainRepository(AppDbContext context) : Repository<Mountain>(context), IMountainRepository
 {
-    public async Task<List<Mountain>> GetFilteredAsync(string? search, string? province, DifficultyLevel? difficulty)
+    public async Task<List<Mountain>> GetFilteredAsync(string? search, DifficultyLevel? difficulty)
     {
         var query = DbSet.Include(m => m.Routes).AsQueryable();
 
@@ -17,9 +17,6 @@ public class MountainRepository(AppDbContext context) : Repository<Mountain>(con
             var keyword = search.Trim();
             query = query.Where(m => m.Name.Contains(keyword) || m.Province.Contains(keyword));
         }
-
-        if (!string.IsNullOrWhiteSpace(province))
-            query = query.Where(m => m.Province == province);
 
         if (difficulty is not null)
             query = query.Where(m => m.Difficulty == difficulty);

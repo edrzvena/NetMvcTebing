@@ -9,8 +9,7 @@ public class HomeController(IMountainService mountainService) : Controller
 {
     public async Task<IActionResult> Index()
     {
-        var mountains = await mountainService.GetTopRatedAsync(3);
-        return View(mountains);
+        return View(await mountainService.GetHomeFeedAsync());
     }
 
     public IActionResult Privacy()

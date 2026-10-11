@@ -245,7 +245,7 @@ Komponen yang dipakai berulang dibikin **partial view** di `Views/Shared/` biar 
 ┌───────────────────────────────────────────────────────────────┬────┐
 │ [FOTO 1200px, full-bleed, radius 16 di desktop]               │ fo │ ← peek slide 2
 │                                                               │ to │
-│  PILIHAN MINGGU INI                     ← eyebrow amber       │    │
+│  PILIHAN                                ← eyebrow amber       │    │
 │  Gunung Rinjani                         ← judul hero putih    │    │
 │  Nusa Tenggara Barat · 3.726 mdpl                             │    │
 │  Danau di dalam kawah dan sabana luas.  ← 1 kalimat           │    │
@@ -532,6 +532,7 @@ Daftar Gunung
 [kartu v2][kartu v2][kartu v2]
 ```
 
+- "Cari" = satu-satunya `btn-primary`; "Tambah Gunung" (admin) = `btn-outline-secondary`.
 - Filter pulau (`island`) lewat chip, gabung sama `search` & `difficulty` (chip bawa query lain).
   Dropdown provinsi diganti chip pulau (provinsi tetap kecari lewat kotak search).
 - Tetap **grid**, bukan rail — di halaman ini orang lagi bandingin.

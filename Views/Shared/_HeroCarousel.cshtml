@@ -1,0 +1,49 @@
+@model List<Tebing.DTOs.Mountain.MountainListDto>
+@* Banner hero Home (docs/UI_UX.md §4.1): digeser manual (scroll-snap), slide berikutnya nongol (peek),
+   tanpa autoplay. Pemanggil yang mastiin list-nya gak kosong & semua gunungnya punya foto. *@
+<section class="hero" data-carousel aria-roledescription="carousel" aria-label="Gunung pilihan">
+    <div class="hero__track" data-carousel-track>
+        @for (var i = 0; i < Model.Count; i++)
+        {
+            var mountain = Model[i];
+            var imagePath = mountain.ImagePath!;
+            <div class="hero__slide" data-carousel-item role="group" aria-roledescription="slide"
+                 aria-label="@(i + 1) dari @Model.Count">
+                @* Slide 1 = elemen terbesar di layar pertama → diprioritasin; sisanya nunggu digeser. *@
+                <img class="hero__img" src="@MountainImageProcessor.Url(imagePath, 1200)"
+                     srcset="@MountainImageProcessor.Url(imagePath, 640) 640w, @MountainImageProcessor.Url(imagePath, 1200) 1200w"
+                     sizes="92vw" width="1200" height="675" alt="@mountain.Name"
+                     loading="@(i == 0 ? "eager" : "lazy")" fetchpriority="@(i == 0 ? "high" : null)" decoding="async"/>
+                <div class="hero__content">
+                    <span class="eyebrow eyebrow--on-photo">Pilihan</span>
+                    <h2 class="hero-title mb-1">@mountain.Name</h2>
+                    <p class="hero__meta tabular-nums mb-1">@mountain.Province &middot; @mountain.HeightMeters.ToNumber() mdpl</p>
+                    @if (mountain.Tagline is { } tagline)
+                    {
+                        <p class="hero__tagline mb-3">@tagline</p>
+                    }
+                    <a asp-controller="Mountain" asp-action="Detail" asp-route-id="@mountain.Id" class="btn btn-light">Lihat Gunung</a>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="hero__controls">
+        <button type="button" class="carousel-arrow carousel-arrow--light" data-carousel-prev aria-label="Slide sebelumnya">
+            <partial name="_Icon" model='"chevron-left"'/>
+        </button>
+        <div class="hero__dots">
+            @for (var i = 0; i < Model.Count; i++)
+            {
+                <button type="button" class="hero__dot" data-carousel-dot="@i" aria-label="Ke slide @(i + 1)"
+                        aria-current="@(i == 0 ? "true" : "false")"></button>
+            }
+        </div>
+        <button type="button" class="carousel-arrow carousel-arrow--light" data-carousel-next aria-label="Slide berikutnya">
+            <partial name="_Icon" model='"chevron-right"'/>
+        </button>
+    </div>
+    @* Pembatas diam di atas foto (gak ikut kegeser), warnanya nyambung ke background halaman. *@
+    <div class="hero__ridge">
+        <partial name="_RidgeDivider" model="@(new RidgeDividerViewModel(RidgeVariant.A))"/>
+    </div>
+</section>

@@ -57,8 +57,10 @@ else
     <div class="d-md-none d-flex flex-column gap-2">
         @foreach (var booking in Model)
         {
-            <div class="card card-clickable">
-                <div class="card-body p-3">
+            <div class="card card-clickable booking-card">
+                <div class="card-body p-3 d-flex gap-3">
+                    <partial name="_MountainThumb" model="@(new MountainThumbViewModel(booking.MountainImagePath, booking.MountainName, ThumbSize.Small))"/>
+                    <div class="flex-grow-1 min-w-0">
                     <div class="d-flex justify-content-between gap-2">
                         <a asp-action="Detail" asp-route-id="@booking.Id" class="stretched-link fw-semibold text-reset text-decoration-none">@booking.MountainName</a>
                         <span class="tabular-nums text-nowrap">@(booking.TotalPrice <= 0 ? "Gratis" : booking.TotalPrice.ToRupiah())</span>
@@ -69,6 +71,7 @@ else
                     <div class="d-flex flex-wrap gap-1">
                         @booking.Status.ToBadge()
                         @booking.PaymentStatus.ToPaymentBadge(booking.TotalPrice)
+                    </div>
                     </div>
                 </div>
             </div>

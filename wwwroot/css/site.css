@@ -1,21 +1,42 @@
-/* Tebing — design tokens & override Bootstrap 5.3. Aturan lengkapnya di docs/UI_UX.md. */
+/* Tebing — design tokens & override Bootstrap 5.3. Aturan lengkapnya di docs/UI_UX.md (versi 2). */
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("../lib/fonts/plus-jakarta-sans/PlusJakartaSans-latin.var.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --tb-primary: #1F5F4A;
   --tb-primary-hover: #174A39;
-  --tb-primary-subtle: #E6F0EC;
-  --tb-body-bg: #F7F7F5;
+  --tb-primary-subtle: #E3EFE9;
+  --tb-forest: #123A2D;
+  --tb-accent: #E08A2E;
+  --tb-accent-subtle: #FBEBD9;
+  --tb-accent-text: #8A4B0F;
+  --tb-body-bg: #F6F3EE;
   --tb-surface: #FFFFFF;
-  --tb-border: #E3E3DF;
+  --tb-border: #E6E1D8;
   --tb-text: #1C1C1A;
   --tb-text-muted: #5F5F5A;
-  --tb-rating: #B7791F;
+  --tb-radius: 10px;
+  --tb-radius-lg: 16px;
+  --tb-radius-pill: 999px;
+  --tb-shadow-sm: 0 1px 2px rgba(28, 28, 26, .06), 0 1px 1px rgba(28, 28, 26, .04);
+  --tb-shadow-lg: 0 12px 32px rgba(18, 58, 45, .14);
+  --tb-overlay: linear-gradient(to top, rgba(18, 58, 45, .85) 0%, rgba(18, 58, 45, .35) 45%, rgba(18, 58, 45, 0) 75%);
+  --tb-ridge-h: clamp(48px, 7vw, 112px);
 
+  --bs-body-font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bs-body-line-height: 1.6;
   --bs-body-bg: var(--tb-body-bg);
   --bs-body-color: var(--tb-text);
   --bs-secondary-color: var(--tb-text-muted);
   --bs-border-color: var(--tb-border);
-  --bs-border-radius: 0.375rem;
+  --bs-border-radius: var(--tb-radius);
+  --bs-border-radius-lg: var(--tb-radius-lg);
   --bs-link-color: var(--tb-primary);
   --bs-link-color-rgb: 31, 95, 74;
   --bs-link-hover-color: var(--tb-primary-hover);
@@ -24,7 +45,7 @@
   --bs-primary-rgb: 31, 95, 74;
   --bs-primary-bg-subtle: var(--tb-primary-subtle);
   --bs-primary-border-subtle: #BCD5CB;
-  --bs-primary-text-emphasis: #123A2D;
+  --bs-primary-text-emphasis: var(--tb-forest);
   --bs-focus-ring-color: rgba(31, 95, 74, 0.25);
 }
 
@@ -32,22 +53,65 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  line-height: 1.5;
 }
 
 main {
   flex: 1 0 auto;
 }
 
-/* ---------- Tipografi ---------- */
+/* ---------- Tipografi (§3.2) ---------- */
 
-h1, .h1 { font-size: 1.75rem; font-weight: 600; }
-h2, .h2 { font-size: 1.25rem; font-weight: 600; }
-h3, .h3, .card-title { font-size: 1.0625rem; font-weight: 600; }
+h1, .h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; }
+h2, .h2 { font-size: 1.5rem; font-weight: 700; }
+h3, .h3, .card-title { font-size: 1.125rem; font-weight: 700; }
+
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* Label kecil di atas judul — satu-satunya tempat ALL CAPS. */
+.eyebrow {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tb-primary);
+}
+
+.eyebrow--on-photo {
+  color: var(--tb-accent);
+}
 
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
+/* ---------- Ikon (§3.5) ---------- */
+
+.tb-icon {
+  flex: none;
+  width: 1.125em;
+  height: 1.125em;
+  vertical-align: -0.15em;
+}
+
 /* ---------- Focus ---------- */
+
+/* Semua elemen yang bisa difokus keyboard (termasuk titik carousel & chip) dapet ring 2px yang sama. */
+:focus-visible {
+  outline: 2px solid var(--tb-primary);
+  outline-offset: 2px;
+}
+
+/* Di atas foto gelap ring hijau gak kebaca. */
+.hero :focus-visible,
+.mountain-hero :focus-visible,
+.site-footer :focus-visible {
+  outline-color: #fff;
+}
 
 .btn:focus-visible,
 .form-control:focus,
@@ -71,7 +135,21 @@ a:focus-visible {
   border-color: var(--tb-primary);
 }
 
-/* ---------- Tombol ---------- */
+/* ---------- Tombol (§3.4) ---------- */
+
+.btn {
+  --bs-btn-padding-y: 0.625rem;
+  --bs-btn-padding-x: 1.25rem;
+  --bs-btn-font-weight: 600;
+  --bs-btn-border-radius: var(--tb-radius);
+}
+
+/* Didefinisiin ulang setelah .btn — kalau gak, padding .btn di atas ikut nimpa .btn-sm bawaan Bootstrap. */
+.btn-sm {
+  --bs-btn-padding-y: 0.375rem;
+  --bs-btn-padding-x: 0.875rem;
+  --bs-btn-border-radius: var(--tb-radius);
+}
 
 /* .btn-primary di Bootstrap 5.3 punya variable sendiri, gak ikut --bs-primary — harus di-override. */
 .btn-primary {
@@ -87,23 +165,37 @@ a:focus-visible {
 
 .btn-outline-secondary {
   --bs-btn-color: var(--tb-text);
-  --bs-btn-border-color: #C9C9C3;
+  --bs-btn-border-color: #CFC8BC;
   --bs-btn-hover-color: var(--tb-text);
-  --bs-btn-hover-bg: #EFEFEB;
-  --bs-btn-hover-border-color: #B5B5AE;
+  --bs-btn-hover-bg: #EFEAE1;
+  --bs-btn-hover-border-color: #B9B1A3;
   --bs-btn-active-color: var(--tb-text);
-  --bs-btn-active-bg: #E6E6E1;
-  --bs-btn-active-border-color: #B5B5AE;
+  --bs-btn-active-bg: #E7E1D6;
+  --bs-btn-active-border-color: #B9B1A3;
+}
+
+/* ---------- Form (§4.11) ---------- */
+
+/* Bootstrap 5.3 pakai --bs-body-bg (krem) buat input — di dalam card harus putih. */
+.form-control,
+.form-select,
+.form-check-input:not(:checked) {
+  background-color: var(--tb-surface);
+}
+
+.form-control:not(textarea),
+.form-select {
+  min-height: 44px;
 }
 
 /* ---------- Navbar ---------- */
 
 .navbar {
-  min-height: 56px;
+  min-height: 64px;
 }
 
 .navbar-brand {
-  font-weight: 700;
+  font-weight: 800;
   color: var(--tb-primary);
 }
 
@@ -114,15 +206,17 @@ a:focus-visible {
 
 .navbar .nav-link.active {
   color: var(--tb-primary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ---------- Card, tabel, badge ---------- */
 
 .card {
+  --bs-card-border-radius: var(--tb-radius-lg);
+  --bs-card-inner-border-radius: calc(var(--tb-radius-lg) - 1px);
   --bs-card-border-color: var(--tb-border);
   --bs-card-bg: var(--tb-surface);
-  box-shadow: none;
+  box-shadow: var(--tb-shadow-sm);
 }
 
 .card-clickable {
@@ -138,20 +232,25 @@ a:focus-visible {
   border-color: var(--tb-primary);
 }
 
-/* Bootstrap 5.3 pakai --bs-body-bg (off-white) buat tabel & input — di dalam card harus putih. */
+/* Kartu yang bisa diklik: naik 2px + shadow besar waktu hover (§3.6). */
+.lift {
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+}
+
+.lift:hover,
+.lift:focus-within {
+  transform: translateY(-2px);
+  box-shadow: var(--tb-shadow-lg);
+}
+
+/* Bootstrap 5.3 pakai --bs-body-bg (krem) buat tabel — di dalam card harus putih. */
 .table {
   --bs-table-bg: var(--tb-surface);
 }
 
-.form-control,
-.form-select,
-.form-check-input:not(:checked) {
-  background-color: var(--tb-surface);
-}
-
 .table > thead th {
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -179,8 +278,16 @@ a:focus-visible {
 }
 
 .badge {
-  --bs-badge-border-radius: 0.25rem;
-  --bs-badge-font-weight: 500;
+  --bs-badge-border-radius: var(--tb-radius-pill);
+  --bs-badge-font-weight: 600;
+  --bs-badge-padding-x: 0.7em;
+  --bs-badge-padding-y: 0.4em;
+}
+
+/* Badge sorotan "Pilihan" (§4.9) — cuma di banner/rail. */
+.badge-pick {
+  background-color: var(--tb-accent-subtle);
+  color: var(--tb-accent-text);
 }
 
 .nav-pills {
@@ -194,8 +301,6 @@ a:focus-visible {
 /* ---------- Pola halaman ---------- */
 
 .page-header {
-  border-bottom: 1px solid var(--tb-border);
-  padding-bottom: 1rem;
   margin-bottom: 1.5rem;
 }
 
@@ -203,6 +308,19 @@ a:focus-visible {
   border-style: dashed;
   text-align: center;
   padding: 3rem 1.5rem;
+}
+
+.empty-state__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background-color: var(--tb-primary-subtle);
+  color: var(--tb-primary);
+  font-size: 1.5rem;
 }
 
 .form-narrow {
@@ -214,7 +332,8 @@ a:focus-visible {
 }
 
 .auth-wrapper {
-  max-width: 420px;
+  width: 100%;
+  max-width: 400px;
   margin: 10vh auto 3rem;
 }
 
@@ -224,11 +343,11 @@ a:focus-visible {
 
 .sticky-panel {
   position: sticky;
-  top: 1rem;
+  top: 80px;
 }
 
 .rating-star {
-  color: var(--tb-rating);
+  color: var(--tb-accent);
 }
 
 /* Titik penanda "butuh aksi" di tabel admin. */
@@ -298,7 +417,7 @@ a:focus-visible {
   width: 0.875rem;
   height: 0.875rem;
   border-radius: 50%;
-  border: 2px solid #C9C9C3;
+  border: 2px solid #CFC8BC;
   background-color: var(--tb-surface);
 }
 
@@ -340,4 +459,812 @@ a:focus-visible {
   .stepper-line {
     display: none;
   }
+}
+
+/* ---------- Pembatas punggungan gunung (§4.15) ---------- */
+
+/* Section yang ditutup pembatas: kasih ruang di bawah biar konten gak ketiban. */
+.has-ridge {
+  position: relative;
+  padding-bottom: var(--tb-ridge-h);
+}
+
+.ridge {
+  position: absolute;
+  left: 0;
+  bottom: -1px; /* -1px biar gak ada garis tipis bocor di antara pembatas & section berikutnya */
+  display: block;
+  width: 100%;
+  height: var(--tb-ridge-h);
+  pointer-events: none;
+}
+
+.ridge--flip {
+  transform: scaleX(-1);
+}
+
+/* ---------- Pola garis kontur (§4.16) ---------- */
+
+.bg-contour {
+  background-image: url("../images/contour.svg");
+  background-size: 600px 400px;
+}
+
+/* ---------- Gerak (§3.6) ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Logo, header, footer (§4.5) ---------- */
+
+.logo-mark__main { fill: var(--tb-primary); }
+.logo-mark__accent { fill: var(--tb-accent); }
+
+.navbar .nav-link.active {
+  box-shadow: inset 0 -2px 0 var(--tb-accent);
+}
+
+/* Ruang di bawah konten buat pembatas punggungan footer (yang naik setinggi --tb-ridge-h). */
+.main-ridge-space {
+  padding-bottom: calc(var(--tb-ridge-h) + 2rem);
+}
+
+.site-footer {
+  position: relative;
+  background-color: var(--tb-forest);
+  color: rgba(255, 255, 255, .72);
+}
+
+.site-footer__ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(1px - var(--tb-ridge-h));
+  height: var(--tb-ridge-h);
+  color: var(--tb-forest);
+}
+
+.site-footer a {
+  color: rgba(255, 255, 255, .72);
+  text-decoration: none;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.site-footer a:focus-visible {
+  outline-color: #fff;
+}
+
+.site-footer li + li {
+  margin-top: 0.375rem;
+}
+
+.site-footer__brand {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.site-footer__brand .logo-mark__main { fill: #fff; }
+
+.site-footer__heading {
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.site-footer__bottom {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+/* ---------- Kartu gunung v2 (§4.4) ---------- */
+
+.mountain-card {
+  overflow: hidden;
+}
+
+.mountain-card__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background-color: var(--tb-primary-subtle);
+}
+
+.mountain-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease-out;
+}
+
+.mountain-card:hover .mountain-card__media img,
+.mountain-card:focus-within .mountain-card__media img {
+  transform: scale(1.03);
+}
+
+/* Gunung tanpa foto: blok hijau muda + ikon gunung, tinggi sama kayak foto. */
+.mountain-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--tb-primary);
+  font-size: 3rem;
+}
+
+.mountain-card__badge {
+  position: absolute;
+  top: 0.75rem;
+  box-shadow: var(--tb-shadow-sm);
+}
+
+/* Kesulitan tetap netral (gak hijau/kuning/merah) biar gak bentrok sama warna status. */
+.mountain-card__badge--start {
+  left: 0.75rem;
+  background-color: var(--tb-surface);
+  color: var(--tb-text);
+}
+
+.mountain-card__badge--end {
+  right: 0.75rem;
+}
+
+.mountain-card__rating {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.mountain-card__meta {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--tb-text-muted);
+}
+
+.mountain-card__meta .text-nowrap + .text-nowrap {
+  margin-left: 0.5rem;
+}
+
+.mountain-card--closed .mountain-card__media img {
+  opacity: 0.55;
+}
+
+.mountain-card--closed .card-body {
+  color: var(--tb-text-muted);
+}
+
+/* ---------- Carousel bersama: banner & rail (§4.1, §4.3) ---------- */
+
+.carousel-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--tb-border);
+  border-radius: 50%;
+  background-color: var(--tb-surface);
+  color: var(--tb-text);
+  box-shadow: var(--tb-shadow-sm);
+  transition: background-color 0.15s ease-out, opacity 0.15s ease-out;
+}
+
+.carousel-arrow:hover:not(:disabled) {
+  background-color: var(--tb-primary-subtle);
+}
+
+.carousel-arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.carousel-arrow--light {
+  border-color: transparent;
+  background-color: rgba(255, 255, 255, .92);
+}
+
+/* Layar sentuh & HP: geser pakai jari, panah gak perlu. */
+@media (hover: none), (max-width: 575.98px) {
+  .carousel-arrow {
+    display: none;
+  }
+}
+
+/* ---------- Banner hero (§4.1) ---------- */
+
+.hero {
+  position: relative;
+  padding-top: 1rem;
+}
+
+.hero__track {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-inline: 4vw;
+  scroll-padding-inline: 4vw;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.hero__track::-webkit-scrollbar {
+  display: none;
+}
+
+.hero__slide {
+  position: relative;
+  flex: 0 0 92%;
+  height: clamp(380px, 62vh, 560px);
+  overflow: hidden;
+  border-radius: var(--tb-radius-lg);
+  scroll-snap-align: start;
+  background-color: var(--tb-forest);
+}
+
+.hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Overlay gelap di bawah teks — satu-satunya gradient yang boleh (§3.1). */
+.hero__slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tb-overlay);
+}
+
+.hero__content {
+  position: absolute;
+  left: clamp(1.25rem, 4vw, 3.5rem);
+  right: clamp(1.25rem, 4vw, 3.5rem);
+  bottom: calc(var(--tb-ridge-h) + 3.5rem);
+  z-index: 1;
+  max-width: 640px;
+  color: #fff;
+}
+
+.hero__meta {
+  font-weight: 500;
+  color: rgba(255, 255, 255, .85);
+}
+
+.hero__tagline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: rgba(255, 255, 255, .92);
+}
+
+.hero__controls {
+  position: absolute;
+  right: calc(4vw + clamp(1.25rem, 4vw, 3.5rem));
+  bottom: calc(var(--tb-ridge-h) + 3.5rem);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hero__dots {
+  display: flex;
+}
+
+/* Titiknya kecil, tapi area kliknya 44px (§7). */
+.hero__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.hero__dot::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, .55);
+  transition: width 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.hero__dot[aria-current="true"]::before {
+  width: 24px;
+  border-radius: var(--tb-radius-pill);
+  background-color: var(--tb-accent);
+}
+
+.hero__ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: var(--tb-ridge-h);
+  color: var(--tb-body-bg);
+  pointer-events: none;
+}
+
+@media (max-width: 575.98px) {
+  .hero__slide {
+    flex-basis: 88%;
+  }
+
+  .hero__controls {
+    left: 0;
+    right: 0;
+    justify-content: center;
+    bottom: calc(var(--tb-ridge-h) + 0.25rem);
+  }
+
+  .hero__content {
+    bottom: calc(var(--tb-ridge-h) + 3.25rem);
+  }
+}
+
+/* ---------- Search mengambang (§4.2) ---------- */
+
+.hero-search {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: var(--tb-radius-lg);
+  background-color: var(--tb-surface);
+  box-shadow: var(--tb-shadow-lg);
+}
+
+.hero-search--floating {
+  margin-top: -2.5rem;
+}
+
+.hero-search__icon {
+  color: var(--tb-text-muted);
+}
+
+.hero-search .form-control {
+  border: 0;
+  box-shadow: none;
+}
+
+/* ---------- Chip (§4.3) ---------- */
+
+.chip-nav__list {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 4px 2px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.chip-nav__list::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--tb-border);
+  border-radius: var(--tb-radius-pill);
+  background-color: var(--tb-surface);
+  box-shadow: var(--tb-shadow-sm);
+  color: var(--tb-text);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.chip:hover {
+  border-color: var(--tb-primary);
+  color: var(--tb-text);
+}
+
+.chip__count {
+  font-weight: 500;
+  color: var(--tb-text-muted);
+}
+
+.chip--active,
+.chip--active:hover {
+  border-color: var(--tb-primary);
+  background-color: var(--tb-primary);
+  color: #fff;
+}
+
+.chip--active .chip__count {
+  color: rgba(255, 255, 255, .8);
+}
+
+/* ---------- Rail (§4.3) ---------- */
+
+.rail {
+  padding-top: 2.5rem;
+}
+
+.rail__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rail__see-all {
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.rail__track {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  /* Ruang buat kartu yang naik 2px + shadow waktu hover (overflow ikut nge-clip sumbu Y). */
+  margin: -12px -8px;
+  padding: 12px 8px;
+  overflow-x: auto;
+  scroll-padding-inline: 8px;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.rail__track::-webkit-scrollbar {
+  display: none;
+}
+
+.rail__item {
+  flex: 0 0 clamp(240px, 72vw, 300px);
+  scroll-snap-align: start;
+}
+
+@media (min-width: 992px) {
+  /* 4 kartu + ujung kartu ke-5 nongol (peek). */
+  .rail__item {
+    flex-basis: calc((100% - 4rem) / 4.25);
+  }
+}
+
+/* ---------- Home ---------- */
+
+.home-rails {
+  padding-bottom: calc(var(--tb-ridge-h) + 2.5rem);
+}
+
+.ridge-to-surface {
+  color: var(--tb-surface);
+}
+
+/* Section putih terakhir di Home: bawahnya ketiban pembatas footer, jadi kasih ruang. */
+.how-it-works {
+  padding: 1rem 0 calc(var(--tb-ridge-h) + 3rem);
+  background-color: var(--tb-surface);
+}
+
+.how-it-works__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  background-color: var(--tb-primary-subtle);
+  color: var(--tb-primary);
+  font-size: 1.375rem;
+}
+
+/* ---------- Daftar Gunung (§5.2) ---------- */
+
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border: 1px solid var(--tb-border);
+  border-radius: var(--tb-radius-lg);
+  background-color: var(--tb-surface);
+  box-shadow: var(--tb-shadow-sm);
+}
+
+.list-search .form-control {
+  border: 0;
+  box-shadow: none;
+}
+
+.list-search .form-select {
+  width: auto;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+  .list-search {
+    flex-wrap: wrap;
+  }
+
+  .list-search .form-control {
+    flex: 1 1 calc(100% - 2rem);
+  }
+
+  .list-search .form-select {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---------- Detail gunung: header foto & stat tile (§5.3, §4.7) ---------- */
+
+.mountain-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(320px, 50vh, 480px);
+  overflow: hidden;
+  background-color: var(--tb-forest); /* gunung tanpa foto: blok hijau gelap */
+  color: #fff;
+}
+
+.mountain-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mountain-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tb-overlay);
+}
+
+.mountain-hero__content {
+  position: relative;
+  z-index: 1;
+  padding-bottom: calc(var(--tb-ridge-h) + 3rem);
+}
+
+.mountain-hero .breadcrumb {
+  --bs-breadcrumb-divider-color: rgba(255, 255, 255, .6);
+  --bs-breadcrumb-item-active-color: rgba(255, 255, 255, .72);
+}
+
+.mountain-hero .breadcrumb a {
+  color: #fff;
+}
+
+.mountain-hero__meta {
+  font-weight: 500;
+  color: rgba(255, 255, 255, .85);
+}
+
+/* HP: kredit ikut alur di bawah meta (biar gak numpuk teks). Tablet ke atas: pojok kanan bawah header. */
+.mountain-hero__credit {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, .72);
+}
+
+@media (min-width: 768px) {
+  .mountain-hero__credit {
+    position: absolute;
+    right: var(--bs-gutter-x, 0.75rem);
+    bottom: calc(var(--tb-ridge-h) + 0.5rem);
+    margin-top: 0;
+  }
+}
+
+.mountain-hero__credit a {
+  color: rgba(255, 255, 255, .85);
+}
+
+.mountain-hero__ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: var(--tb-ridge-h);
+  color: var(--tb-body-bg);
+  pointer-events: none;
+}
+
+/* Stat tile numpuk ke bagian bawah header (di atas pembatas). */
+.stat-tiles {
+  position: relative;
+  z-index: 3;
+  margin-top: -2rem;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  height: 100%;
+  padding: 1rem;
+}
+
+.stat-tile__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 0.5rem;
+  border-radius: 50%;
+  background-color: var(--tb-primary-subtle);
+  color: var(--tb-primary);
+  font-size: 1.25rem;
+}
+
+.stat-tile__value {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.stat-tile__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--tb-text-muted);
+}
+
+@media (min-width: 992px) {
+  .booking-panel {
+    position: sticky;
+    top: 80px;
+    box-shadow: var(--tb-shadow-lg);
+  }
+}
+
+/* ---------- Halaman akun terbelah (§5.8) ---------- */
+
+.auth-split {
+  display: flex;
+  min-height: 100vh;
+}
+
+.auth-main {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-inline: var(--bs-gutter-x, 0.75rem);
+}
+
+.auth-photo {
+  position: relative;
+  display: none;
+  flex: 0 0 50%;
+  align-items: flex-end;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: var(--tb-forest);
+  color: #fff;
+}
+
+@media (min-width: 992px) {
+  .auth-photo {
+    display: flex;
+  }
+
+  .auth-main {
+    align-items: center;
+  }
+
+  .auth-wrapper {
+    margin-block: 3rem;
+  }
+}
+
+.auth-photo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auth-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tb-overlay);
+}
+
+.auth-photo.bg-contour::after {
+  content: none;
+}
+
+.auth-photo__content {
+  position: relative;
+  z-index: 1;
+  padding: 3rem;
+  max-width: 560px;
+}
+
+.auth-photo__credit {
+  color: rgba(255, 255, 255, .72);
+}
+
+/* ---------- Thumbnail foto gunung di halaman booking (§5.4–5.6) ---------- */
+
+.thumb {
+  display: block;
+  flex: none;
+  object-fit: cover;
+  border-radius: var(--tb-radius);
+  background-color: var(--tb-primary-subtle);
+}
+
+.thumb--wide {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.thumb--sm {
+  width: 64px;
+  height: 64px;
+}
+
+.thumb--md {
+  width: 96px;
+  height: 64px;
+}
+
+.thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tb-primary);
+  font-size: 1.75rem;
+}
+
+/* Langkah booking yang lagi jalan: ring amber (§5.6). */
+.stepper-item.current .stepper-dot {
+  border-color: var(--tb-accent);
+  box-shadow: 0 0 0 4px var(--tb-accent-subtle);
+}
+
+.stepper-item.current {
+  color: var(--tb-text);
+  font-weight: 600;
 }

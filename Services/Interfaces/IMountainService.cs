@@ -1,4 +1,6 @@
 using Tebing.Common.Enums;
+using Tebing.Common.Feeds;
+using Tebing.Common.Regions;
 using Tebing.DTOs.Mountain;
 
 namespace Tebing.Services.Interfaces;
@@ -8,12 +10,20 @@ public record MountainResult(bool Success, string? Error = null, int? MountainId
 
 public interface IMountainService
 {
-    Task<List<MountainListDto>> GetAllAsync(string? search = null, string? province = null,
+    // Filter pulau dijalanin setelah query (pulau diturunin dari teks provinsi, gak ada di database).
+    Task<List<MountainListDto>> GetAllAsync(string? search = null, Island? island = null,
         DifficultyLevel? difficulty = null);
 
-    // Buat halaman Home: gunung Open dengan rating tertinggi, sisanya diisi gunung Open lain
-    // kalau yang punya rating kurang dari `count`.
-    Task<List<MountainListDto>> GetTopRatedAsync(int count);
+    // Jumlah gunung per pulau dari semua gunung (tanpa filter), buat chip pulau.
+    Task<List<IslandCount>> GetIslandSummaryAsync();
+
+    // Banner + 3 rail + chip di Home (aturannya di MountainFeed).
+    Task<HomeFeed> GetHomeFeedAsync();
+
+    Task<List<MountainListDto>> GetSameIslandAsync(int mountainId, Island? island, int count);
+
+    // Foto acak buat panel kiri halaman akun. Null = belum ada gunung Open yang punya foto.
+    Task<MountainListDto?> GetRandomPhotoAsync();
 
     Task<List<string>> GetProvincesAsync();
     Task<MountainDetailDto?> GetByIdAsync(int id);

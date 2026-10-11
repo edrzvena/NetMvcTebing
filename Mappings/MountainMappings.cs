@@ -1,3 +1,5 @@
+using Tebing.Common.Regions;
+using Tebing.Common.Text;
 using Tebing.DTOs.Mountain;
 using Tebing.Models;
 
@@ -14,6 +16,9 @@ public static class MountainMappings
         Difficulty = mountain.Difficulty,
         Status = mountain.Status,
         ImagePath = mountain.ImagePath,
+        ImageCredit = mountain.ImageCredit,
+        Island = IslandRegion.FromProvince(mountain.Province),
+        Tagline = mountain.Description.FirstSentence(),
         // Butuh Mountain.Routes di-Include.
         RouteCount = mountain.Routes.Count(r => r.IsActive),
         MinPricePerPerson = mountain.Routes.Where(r => r.IsActive).Select(r => (decimal?)r.PricePerPerson).Min()
@@ -28,6 +33,7 @@ public static class MountainMappings
         Difficulty = mountain.Difficulty,
         Status = mountain.Status,
         Description = mountain.Description,
+        Island = IslandRegion.FromProvince(mountain.Province),
         ImagePath = mountain.ImagePath,
         ImageCredit = mountain.ImageCredit,
         ImageSourceUrl = mountain.ImageSourceUrl,

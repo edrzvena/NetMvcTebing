@@ -1,4 +1,6 @@
 using Tebing.Common.Enums;
+using Tebing.Common.Feeds;
+using Tebing.Common.Regions;
 using Tebing.DTOs.Mountain;
 using Tebing.Mappings;
 using Tebing.Models;
@@ -13,10 +15,10 @@ public class MountainService(
     IReviewRepository reviewRepository,
     IMountainImageService imageService) : IMountainService
 {
-    public async Task<List<MountainListDto>> GetAllAsync(string? search = null, string? province = null,
+    public async Task<List<MountainListDto>> GetAllAsync(string? search = null, Island? island = null,
         DifficultyLevel? difficulty = null)
     {
-        var mountains = await mountainRepository.GetFilteredAsync(search, province, difficulty);
+        var mountains = await mountainRepository.GetFilteredAsync(search, difficulty);
         var ratings = await reviewRepository.GetRatingSummariesAsync(mountains.Select(m => m.Id));
 
         return mountains.Select(m =>
@@ -29,20 +31,20 @@ public class MountainService(
             }
 
             return dto;
-        }).ToList();
-    }
-
-    public async Task<List<MountainListDto>> GetTopRatedAsync(int count)
-    {
-        var mountains = await GetAllAsync();
-        return mountains
-            .Where(m => m.Status == MountainStatus.Open)
-            .OrderByDescending(m => m.AverageRating ?? 0)
-            .ThenByDescending(m => m.ReviewCount)
-            .ThenBy(m => m.Name)
-            .Take(count)
+        })
+            .Where(dto => island is null || dto.Island == island)
             .ToList();
     }
+
+    public async Task<List<IslandCount>> GetIslandSummaryAsync() => MountainFeed.IslandSummary(await GetAllAsync());
+
+    public async Task<HomeFeed> GetHomeFeedAsync() => MountainFeed.BuildHome(await GetAllAsync());
+
+    public async Task<List<MountainListDto>> GetSameIslandAsync(int mountainId, Island? island, int count) =>
+        MountainFeed.SameIsland(await GetAllAsync(island: island), mountainId, island, count);
+
+    public async Task<MountainListDto?> GetRandomPhotoAsync() =>
+        MountainFeed.PickRandomPhoto(await GetAllAsync(), Random.Shared);
 
     public Task<List<string>> GetProvincesAsync() => mountainRepository.GetProvincesAsync();
 

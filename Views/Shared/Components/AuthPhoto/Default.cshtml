@@ -1,0 +1,24 @@
+@model Tebing.DTOs.Mountain.MountainListDto?
+@* Panel kiri halaman akun. Null = belum ada gunung berfoto → blok hijau gelap + garis kontur. *@
+<aside class="auth-photo @(Model is null ? "bg-contour" : "")" aria-label="Foto gunung">
+    @if (Model?.ImagePath is { } imagePath)
+    {
+        @* <picture> + media query: di HP (< 992px) yang kepake cuma GIF kosong 1px, jadi foto 1200 gak ikut ke-download. *@
+        <picture>
+            <source media="(min-width: 992px)" srcset="@MountainImageProcessor.Url(imagePath, 1200)"/>
+            <img class="auth-photo__img" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="@Model.Name"
+                 width="1200" height="675" decoding="async"/>
+        </picture>
+    }
+    <div class="auth-photo__content">
+        <p class="hero-title mb-2">Sampai ketemu di puncak.</p>
+        @if (Model is not null)
+        {
+            <p class="mb-1 fw-semibold">@Model.Name &middot; @Model.Province</p>
+            @if (!string.IsNullOrEmpty(Model.ImageCredit))
+            {
+                <p class="small mb-0 auth-photo__credit">Foto: @Model.ImageCredit</p>
+            }
+        }
+    </div>
+</aside>

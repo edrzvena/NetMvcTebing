@@ -1,0 +1,33 @@
+@model MountainRailViewModel
+@* Baris kartu gunung yang bisa digeser (docs/UI_UX.md §4.3). Rail kosong gak dirender sama sekali. *@
+@if (Model.Mountains.Any())
+{
+    <section class="rail" aria-labelledby="@Model.Id-title" data-carousel>
+        <div class="rail__head">
+            <div>
+                <span class="eyebrow">@Model.Eyebrow</span>
+                <h2 id="@Model.Id-title" class="mb-0">@Model.Title</h2>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                @if (Model.SeeAllUrl is not null)
+                {
+                    <a href="@Model.SeeAllUrl" class="rail__see-all">Lihat semua <partial name="_Icon" model='"arrow-right"'/></a>
+                }
+                <button type="button" class="carousel-arrow" data-carousel-prev aria-label="Geser ke kiri: @Model.Title">
+                    <partial name="_Icon" model='"chevron-left"'/>
+                </button>
+                <button type="button" class="carousel-arrow" data-carousel-next aria-label="Geser ke kanan: @Model.Title">
+                    <partial name="_Icon" model='"chevron-right"'/>
+                </button>
+            </div>
+        </div>
+        <div class="rail__track" data-carousel-track>
+            @foreach (var mountain in Model.Mountains)
+            {
+                <div class="rail__item" data-carousel-item>
+                    <partial name="/Views/Mountain/_MountainCard.cshtml" model="mountain"/>
+                </div>
+            }
+        </div>
+    </section>
+}

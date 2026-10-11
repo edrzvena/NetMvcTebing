@@ -1,0 +1,21 @@
+@model MountainThumbViewModel
+@* Thumbnail foto gunung (file 640, di-crop lewat object-fit). Selalu lazy — gak pernah elemen utama halaman. *@
+@{
+    var sizeClass = Model.Size switch
+    {
+        ThumbSize.Small => "thumb--sm",
+        ThumbSize.Medium => "thumb--md",
+        _ => "thumb--wide"
+    };
+}
+@if (Model.ImagePath is { } imagePath)
+{
+    <img class="thumb @sizeClass" src="@MountainImageProcessor.Url(imagePath, 640)" alt="@Model.Name"
+         width="640" height="360" loading="lazy" decoding="async"/>
+}
+else
+{
+    <span class="thumb thumb--placeholder @sizeClass" role="img" aria-label="@Model.Name (belum ada foto)">
+        <partial name="_Icon" model='"mountain"'/>
+    </span>
+}

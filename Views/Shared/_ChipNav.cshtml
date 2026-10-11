@@ -1,0 +1,18 @@
+@model ChipNavViewModel
+@* Baris chip yang bisa digeser (docs/UI_UX.md §4.3). Tiap chip = link filter. *@
+<nav class="chip-nav" aria-label="@Model.AriaLabel">
+    <ul class="chip-nav__list">
+        @foreach (var item in Model.Items)
+        {
+            <li>
+                <a href="@item.Url" class="chip @(item.Active ? "chip--active" : "")" aria-current="@(item.Active ? "page" : null)">
+                    @item.Label
+                    @if (item.Count is { } count)
+                    {
+                        <span class="chip__count tabular-nums">@count</span>
+                    }
+                </a>
+            </li>
+        }
+    </ul>
+</nav>

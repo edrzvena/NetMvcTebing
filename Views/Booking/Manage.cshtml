@@ -27,17 +27,10 @@
     <h1 class="mb-0">Kelola Booking</h1>
 </div>
 
-<ul class="nav nav-pills flex-wrap gap-1 mb-3" aria-label="Filter status">
-    @foreach (var tab in tabs)
-    {
-        var active = tab.Status == selectedStatus;
-        <li class="nav-item">
-            <a href="@TabUrl(tab.Status)" class="nav-link py-1 px-3 @(active ? "active" : "")" aria-current="@(active ? "page" : null)">
-                @tab.Label <span class="tabular-nums @(active ? "" : "text-secondary")">@tab.Count</span>
-            </a>
-        </li>
-    }
-</ul>
+<div class="mb-3">
+    <partial name="_ChipNav" model="@(new ChipNavViewModel("Filter status",
+        tabs.Select(t => new ChipItem(t.Label, t.Count, TabUrl(t.Status), t.Status == selectedStatus)).ToList()))"/>
+</div>
 
 <form method="get" class="row g-2 mb-3">
     @if (selectedStatus is not null)

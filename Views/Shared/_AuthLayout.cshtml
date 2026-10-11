@@ -1,23 +1,32 @@
-@* Layout halaman akun (Masuk, Daftar, Lupa/Reset Password): 1 card di tengah, tanpa navbar. *@
+@* Layout halaman akun (Masuk, Daftar, Lupa/Reset Password) — docs/UI_UX.md §5.8: desktop terbelah
+   (foto gunung kiri, form kanan), HP form aja. Tanpa navbar & footer, jadi gak ada pembatas punggungan. *@
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>@ViewData["Title"] - Tebing</title>
+    <link rel="preload" href="~/lib/fonts/plus-jakarta-sans/PlusJakartaSans-latin.var.woff2" as="font" type="font/woff2" crossorigin/>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
-<main role="main" class="container">
-    <div class="auth-wrapper">
-        <p class="text-center mb-4">
-            <a asp-controller="Home" asp-action="Index" class="navbar-brand fs-3 text-decoration-none">Tebing</a>
-        </p>
-        <partial name="_FlashMessages"/>
-        @RenderBody()
-    </div>
-</main>
+<div class="auth-split">
+    @await Component.InvokeAsync("AuthPhoto")
+    <main role="main" class="auth-main">
+        <div class="auth-wrapper">
+            <p class="text-center mb-4">
+                <a asp-controller="Home" asp-action="Index" class="navbar-brand fs-3 d-inline-flex align-items-center gap-2 text-decoration-none">
+                    <partial name="_Logo"/>
+                    Tebing
+                </a>
+            </p>
+            <partial name="_FlashMessages"/>
+            @RenderBody()
+        </div>
+    </main>
+</div>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 @await RenderSectionAsync("Scripts", required: false)

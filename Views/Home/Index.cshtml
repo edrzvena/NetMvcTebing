@@ -1,54 +1,82 @@
-﻿@model List<Tebing.DTOs.Mountain.MountainListDto>
+﻿@model Tebing.Common.Feeds.HomeFeed
+@using Tebing.Common.Regions
 
+@* Home v2 (docs/UI_UX.md §5.1): banner → search mengambang → chip pulau → 3 rail → cara kerjanya. *@
 @{
     ViewData["Title"] = "Booking Pendakian Gunung";
-    var hasRating = Model.Any(m => m.AverageRating is not null);
+    ViewData["FullBleed"] = true;
+    var hasHero = Model.Featured.Any();
+
+    var chips = new List<ChipItem> { new("Semua", Model.Islands.Sum(i => i.Count), Url.Action("Index", "Mountain")!, true) };
+    chips.AddRange(Model.Islands.Select(i =>
+        new ChipItem(i.Island.ToLabel(), i.Count, Url.Action("Index", "Mountain", new { island = i.Island })!, false)));
+
     var steps = new[]
     {
-        ("Pilih gunung & jalur", "Cek jalur, kuota harian, dan harga tiket per orang."),
-        ("Isi data rombongan", "Masukin data tiap peserta, termasuk kontak darurat."),
-        ("Upload bukti bayar", "Transfer, upload buktinya, admin yang verifikasi."),
-        ("Naik & kasih ulasan", "Setelah turun, bagi pengalamanmu buat pendaki lain.")
+        ("route", "Pilih gunung & jalur", "Cek jalur, kuota harian, dan harga tiket per orang."),
+        ("users", "Isi data rombongan", "Masukin data tiap peserta, termasuk kontak darurat."),
+        ("ticket", "Upload bukti bayar", "Transfer, upload buktinya, admin yang verifikasi."),
+        ("star", "Naik & kasih ulasan", "Setelah turun, bagi pengalamanmu buat pendaki lain.")
     };
 }
 
-<section class="mb-5 pt-2 intro-block">
-    <h1 class="mb-2">Booking pendakian gunung, tanpa antre di basecamp.</h1>
-    <p class="text-secondary mb-4">Cek kuota, isi data rombongan, bayar, dan pantau status booking dari satu tempat.</p>
-    <form asp-controller="Mountain" asp-action="Index" method="get" class="d-flex gap-2" role="search">
+@section Head {
+    @if (hasHero)
+    {
+        var first = Model.Featured[0].ImagePath!;
+        <link rel="preload" as="image" fetchpriority="high"
+              imagesrcset="@MountainImageProcessor.Url(first, 640) 640w, @MountainImageProcessor.Url(first, 1200) 1200w"
+              imagesizes="92vw"/>
+    }
+}
+
+<h1 class="visually-hidden">Tebing — booking pendakian gunung se-Indonesia</h1>
+
+@if (hasHero)
+{
+    <partial name="_HeroCarousel" model="Model.Featured"/>
+}
+
+<div class="container">
+    <form asp-controller="Mountain" asp-action="Index" method="get" role="search"
+          class="hero-search @(hasHero ? "hero-search--floating" : "mt-4")">
+        <span class="hero-search__icon"><partial name="_Icon" model='"search"'/></span>
         <label for="home-search" class="visually-hidden">Cari gunung</label>
         <input type="search" id="home-search" name="search" class="form-control" placeholder="Cari nama gunung atau provinsi…"/>
         <button type="submit" class="btn btn-primary">Cari</button>
     </form>
-</section>
 
-<section class="mb-5">
-    <h2 class="mb-3">Cara kerjanya</h2>
-    <ol class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 list-unstyled mb-0">
-        @for (var i = 0; i < steps.Length; i++)
-        {
-            <li class="col">
-                <p class="fw-semibold mb-1"><span class="text-primary tabular-nums me-1">@(i + 1)</span> @steps[i].Item1</p>
-                <p class="small text-secondary mb-0">@steps[i].Item2</p>
-            </li>
-        }
-    </ol>
-</section>
+    <div class="mt-4">
+        <partial name="_ChipNav" model="@(new ChipNavViewModel("Jelajah per pulau", chips))"/>
+    </div>
+</div>
 
-@if (Model.Any())
-{
-    <section>
-        <div class="d-flex justify-content-between align-items-baseline gap-2 mb-3">
-            <h2 class="mb-0">@(hasRating ? "Gunung dengan rating tertinggi" : "Gunung yang bisa dibooking")</h2>
-            <a asp-controller="Mountain" asp-action="Index" class="text-nowrap">Lihat semua &rarr;</a>
-        </div>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            @foreach (var mountain in Model)
+@* Wrapper rail ditutup pembatas (→ putih) yang masuk ke section "Cara kerjanya". *@
+<div class="home-rails has-ridge">
+    <div class="container">
+        <partial name="_MountainRail" model="@(new MountainRailViewModel("rail-picks", "Pilihan", "Gunung pilihan", Model.Picks, Url.Action("Index", "Mountain")))"/>
+        <partial name="_MountainRail" model="@(new MountainRailViewModel("rail-beginner", "Cari yang ringan", "Cocok buat pemula", Model.Beginner, Url.Action("Index", "Mountain", new { difficulty = "Easy" })))"/>
+        <partial name="_MountainRail" model="@(new MountainRailViewModel("rail-challenging", "Buat yang cari tantangan", "Jalur menantang", Model.Challenging, Url.Action("Index", "Mountain", new { difficulty = "Hard" })))"/>
+    </div>
+    <div class="ridge-to-surface">
+        <partial name="_RidgeDivider" model="@(new RidgeDividerViewModel(RidgeVariant.B))"/>
+    </div>
+</div>
+
+<section id="cara-kerja" class="how-it-works" aria-labelledby="how-title">
+    <div class="container">
+        <span class="eyebrow">Cara kerjanya</span>
+        <h2 id="how-title" class="mb-4">Dari pilih gunung sampai turun lagi</h2>
+        <ol class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4 list-unstyled mb-0">
+            @for (var i = 0; i < steps.Length; i++)
             {
-                <div class="col">
-                    <partial name="/Views/Mountain/_MountainCard.cshtml" model="mountain"/>
-                </div>
+                var (icon, title, text) = steps[i];
+                <li class="col">
+                    <span class="how-it-works__icon"><partial name="_Icon" model="icon"/></span>
+                    <p class="fw-bold mb-1"><span class="text-primary tabular-nums me-1">@(i + 1)</span> @title</p>
+                    <p class="small text-secondary mb-0">@text</p>
+                </li>
             }
-        </div>
-    </section>
-}
+        </ol>
+    </div>
+</section>

@@ -1,58 +1,63 @@
 @model List<Tebing.DTOs.Mountain.MountainListDto>
+@using Tebing.Common.Feeds
+@using Tebing.Common.Regions
 
+@* Daftar Gunung v2 (docs/UI_UX.md §5.2): search card + chip pulau + grid kartu (bukan rail — di sini orang lagi bandingin). *@
 @{
     ViewData["Title"] = "Daftar Gunung";
     var search = ViewData["Search"] as string;
-    var province = ViewData["Province"] as string;
+    var island = ViewData["Island"] as Island?;
     var difficulty = ViewData["Difficulty"] as DifficultyLevel?;
-    var provinces = (List<string>)ViewData["Provinces"]!;
-    var isFiltered = !string.IsNullOrWhiteSpace(search) || !string.IsNullOrWhiteSpace(province) || difficulty is not null;
+    var islands = (List<IslandCount>)ViewData["Islands"]!;
+    var totalCount = (int)ViewData["TotalCount"]!;
+    var isFiltered = !string.IsNullOrWhiteSpace(search) || island is not null || difficulty is not null;
+
+    // Chip pulau bawa search & kesulitan yang lagi aktif.
+    var chips = new List<ChipItem> { new("Semua", totalCount, Url.Action("Index", new { search, difficulty })!, island is null) };
+    chips.AddRange(islands.Select(i => new ChipItem(i.Island.ToLabel(), i.Count,
+        Url.Action("Index", new { search, island = i.Island, difficulty })!, i.Island == island)));
 }
 
-<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+<div class="page-header d-flex justify-content-between align-items-end flex-wrap gap-2">
     <div>
+        <span class="eyebrow">Jelajah</span>
         <h1 class="mb-1">Daftar Gunung</h1>
-        <p class="text-secondary mb-0">@Model.Count gunung</p>
+        <p class="text-secondary mb-0">@totalCount gunung di @islands.Count wilayah</p>
     </div>
     @if (User.IsInRole("Admin"))
     {
-        <a asp-action="Create" class="btn btn-primary">Tambah Gunung</a>
+        <a asp-action="Create" class="btn btn-outline-secondary">Tambah Gunung</a>
     }
 </div>
 
-<form method="get" class="row g-2 mb-4" role="search">
-    <div class="col-12 col-md">
-        <label for="search" class="visually-hidden">Cari nama gunung</label>
-        <input type="search" id="search" name="search" value="@search" class="form-control" placeholder="Cari nama gunung atau provinsi…"/>
-    </div>
-    <div class="col-6 col-md-auto">
-        <label for="province" class="visually-hidden">Provinsi</label>
-        <select id="province" name="province" class="form-select">
-            <option value="">Semua provinsi</option>
-            @foreach (var item in provinces)
-            {
-                <option value="@item" selected="@(item == province)">@item</option>
-            }
-        </select>
-    </div>
-    <div class="col-6 col-md-auto">
-        <label for="difficulty" class="visually-hidden">Tingkat kesulitan</label>
-        <select id="difficulty" name="difficulty" class="form-select">
-            <option value="">Semua kesulitan</option>
-            @foreach (var level in Enum.GetValues<DifficultyLevel>())
-            {
-                <option value="@level" selected="@(difficulty == level)">@level.ToLabel()</option>
-            }
-        </select>
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-outline-secondary">Filter</button>
-        @if (isFiltered)
+<form method="get" role="search" class="list-search mb-3">
+    @if (island is not null)
+    {
+        <input type="hidden" name="island" value="@island"/>
+    }
+    <span class="hero-search__icon"><partial name="_Icon" model='"search"'/></span>
+    <label for="search" class="visually-hidden">Cari nama gunung atau provinsi</label>
+    <input type="search" id="search" name="search" value="@search" class="form-control" placeholder="Cari nama gunung atau provinsi…"/>
+    <label for="difficulty" class="visually-hidden">Tingkat kesulitan</label>
+    <select id="difficulty" name="difficulty" class="form-select">
+        <option value="">Semua kesulitan</option>
+        @foreach (var level in Enum.GetValues<DifficultyLevel>())
         {
-            <a asp-action="Index" class="btn btn-link">Reset</a>
+            <option value="@level" selected="@(difficulty == level)">@level.ToLabel()</option>
         }
-    </div>
+    </select>
+    <button type="submit" class="btn btn-primary">Cari</button>
 </form>
+
+<div class="mb-4 d-flex align-items-center gap-3 flex-wrap">
+    <div class="flex-grow-1 min-w-0">
+        <partial name="_ChipNav" model="@(new ChipNavViewModel("Filter pulau", chips))"/>
+    </div>
+    @if (isFiltered)
+    {
+        <a asp-action="Index" class="btn btn-link px-0">Reset filter</a>
+    }
+</div>
 
 @if (!Model.Any())
 {
@@ -63,12 +68,12 @@
 }
 else
 {
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+    <div class="mountain-grid row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
         @for (var i = 0; i < Model.Count; i++)
         {
             <div class="col">
                 <partial name="_MountainCard" model="Model[i]"
-                         view-data="@(new ViewDataDictionary(ViewData) { ["EagerImage"] = i < 3 })"/>
+                         view-data="@(new ViewDataDictionary(ViewData) { ["EagerImage"] = i < 6 })"/>
             </div>
         }
     </div>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tebing.Common.Enums;
+using Tebing.Common.Regions;
 using Tebing.DTOs.Mountain;
 using Tebing.Services.Interfaces;
 
@@ -9,14 +10,17 @@ namespace Tebing.Controllers;
 public class MountainController(IMountainService mountainService) : Controller
 {
     [HttpGet]
-    public async Task<IActionResult> Index(string? search, string? province, DifficultyLevel? difficulty)
+    public async Task<IActionResult> Index(string? search, Island? island, DifficultyLevel? difficulty)
     {
         ViewData["Search"] = search;
-        ViewData["Province"] = province;
+        ViewData["Island"] = island;
         ViewData["Difficulty"] = difficulty;
-        ViewData["Provinces"] = await mountainService.GetProvincesAsync();
 
-        var mountains = await mountainService.GetAllAsync(search, province, difficulty);
+        var islands = await mountainService.GetIslandSummaryAsync();
+        ViewData["Islands"] = islands;
+        ViewData["TotalCount"] = islands.Sum(i => i.Count);
+
+        var mountains = await mountainService.GetAllAsync(search, island, difficulty);
         return View(mountains);
     }
 
@@ -27,6 +31,7 @@ public class MountainController(IMountainService mountainService) : Controller
         if (mountain is null)
             return NotFound();
 
+        ViewData["SameIsland"] = await mountainService.GetSameIslandAsync(id, mountain.Island, 10);
         return View(mountain);
     }
 

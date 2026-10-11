@@ -1,7 +1,10 @@
 @model Tebing.ViewModels.Shared.EmptyStateViewModel
 
 <div class="card empty-state">
-    <p class="fw-semibold mb-1">@Model.Title</p>
+    <div>
+        <span class="empty-state__icon"><partial name="_Icon" model='"mountain"'/></span>
+    </div>
+    <p class="fw-bold mb-1">@Model.Title</p>
     <p class="text-secondary mb-0">@Model.Message</p>
     @if (Model.ActionText is not null && Model.ActionUrl is not null)
     {

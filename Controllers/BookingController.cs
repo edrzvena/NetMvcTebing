@@ -135,6 +135,7 @@ public class BookingController(IBookingService bookingService, IMountainService 
             return false;
 
         model.MountainName = mountain.Name;
+        model.MountainImagePath = mountain.ImagePath;
         model.Routes = mountain.Status == MountainStatus.Open
             ? mountain.Routes
                 .Where(r => r.IsActive)

@@ -1,4 +1,5 @@
-﻿@{
+﻿@using Tebing.Common.Regions
+@{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
 
@@ -9,6 +10,9 @@
     var isMountain = controller == "Mountain";
     var isMyBookings = controller == "Booking" && action != "Manage";
     var isManage = controller == "Booking" && action == "Manage";
+
+    // Halaman dengan banner/header foto lebar penuh (Home, detail gunung) ngatur container-nya sendiri.
+    var fullBleed = ViewData["FullBleed"] is true;
 }
 <!DOCTYPE html>
 <html lang="id">
@@ -17,14 +21,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>@ViewData["Title"] - Tebing</title>
     <script type="importmap"></script>
+    <link rel="preload" href="~/lib/fonts/plus-jakarta-sans/PlusJakartaSans-latin.var.woff2" as="font" type="font/woff2" crossorigin/>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
-<header>
+<header class="sticky-top">
     <nav class="navbar navbar-expand-md bg-white border-bottom">
         <div class="container">
-            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Tebing</a>
+            <a class="navbar-brand d-inline-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
+                <partial name="_Logo"/>
+                Tebing
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-nav"
                     aria-controls="main-nav" aria-expanded="false" aria-label="Buka menu">
                 <span class="navbar-toggler-icon"></span>
@@ -69,20 +78,63 @@
     </nav>
 </header>
 
-<main role="main" class="container py-4">
-    <partial name="_FlashMessages"/>
-    @RenderBody()
-</main>
+@if (fullBleed)
+{
+    <main role="main">
+        <div class="container">
+            <partial name="_FlashMessages"/>
+        </div>
+        @RenderBody()
+    </main>
+}
+else
+{
+    @* padding bawah = ruang buat pembatas punggungan footer yang naik nutupin bagian bawah main. *@
+    <main role="main" class="container pt-4 main-ridge-space">
+        <partial name="_FlashMessages"/>
+        @RenderBody()
+    </main>
+}
 
-<footer class="border-top bg-white py-3 mt-4">
-    <div class="container d-flex flex-wrap justify-content-between gap-2 small text-secondary">
-        <span>&copy; 2026 Tebing</span>
-        <a asp-area="" asp-controller="Home" asp-action="Privacy" class="link-secondary">Kebijakan Privasi</a>
+<footer class="site-footer bg-contour">
+    <div class="site-footer__ridge">
+        <partial name="_RidgeDivider" model="@(new RidgeDividerViewModel(RidgeVariant.A, Flip: true))"/>
+    </div>
+    <div class="container py-5">
+        <div class="row g-4">
+            <div class="col-md-5">
+                <p class="site-footer__brand d-inline-flex align-items-center gap-2 mb-2">
+                    <partial name="_Logo"/>
+                    Tebing
+                </p>
+                <p class="mb-0">Booking pendakian gunung se-Indonesia, tanpa antre di basecamp.</p>
+            </div>
+            <nav class="col-6 col-md-4" aria-labelledby="footer-explore">
+                <p id="footer-explore" class="site-footer__heading">Jelajah</p>
+                <ul class="list-unstyled mb-0">
+                    @foreach (var island in Enum.GetValues<Island>())
+                    {
+                        <li><a asp-area="" asp-controller="Mountain" asp-action="Index" asp-route-island="@island">@island.ToLabel()</a></li>
+                    }
+                </ul>
+            </nav>
+            <nav class="col-6 col-md-3" aria-labelledby="footer-help">
+                <p id="footer-help" class="site-footer__heading">Bantuan</p>
+                <ul class="list-unstyled mb-0">
+                    <li><a asp-area="" asp-controller="Home" asp-action="Index" asp-fragment="cara-kerja">Cara booking</a></li>
+                    <li><a asp-area="" asp-controller="Home" asp-action="Privacy">Kebijakan Privasi</a></li>
+                </ul>
+            </nav>
+        </div>
+        <p class="site-footer__bottom small mb-0">
+            &copy; 2026 Tebing &middot; Foto gunung: kontributor Wikimedia Commons (kredit lengkap di tiap halaman gunung)
+        </p>
     </div>
 </footer>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/carousel.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

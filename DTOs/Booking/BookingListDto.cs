@@ -6,6 +6,9 @@ public class BookingListDto
 {
     public int Id { get; set; }
     public string MountainName { get; set; } = string.Empty;
+
+    // Path dasar foto gunung buat thumbnail (lihat MountainImageProcessor.Url). Null = gunung tanpa foto.
+    public string? MountainImagePath { get; set; }
     public string RouteName { get; set; } = string.Empty;
     public DateOnly ClimbDate { get; set; }
     public int NumberOfPeople { get; set; }
