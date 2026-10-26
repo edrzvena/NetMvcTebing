@@ -1,0 +1,14 @@
+docs {
+  App ini MVC (balikan HTML, bukan JSON). Request POST butuh anti-forgery token + cookie:
+  1. Jalankan request GET halaman form dulu (misal "Login Page") → token otomatis disimpan ke {{csrfToken}}
+  2. Baru jalankan POST-nya. Cookie login disimpan otomatis sama Bruno.
+}
+
+script:post-response {
+  // Tiap response HTML yang ada form-nya, ambil anti-forgery token buat request POST berikutnya.
+  const body = res.getBody();
+  if (typeof body === "string") {
+    const match = body.match(/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/);
+    if (match) bru.setVar("csrfToken", match[1]);
+  }
+}

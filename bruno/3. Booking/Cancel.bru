@@ -1,0 +1,16 @@
+meta {
+  name: Cancel
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/Booking/Cancel
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  __RequestVerificationToken: {{csrfToken}}
+  id: {{bookingId}}
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Create
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/Booking/Create
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  __RequestVerificationToken: {{csrfToken}}
+  Booking.MountainId: {{mountainId}}
+  Booking.HikingRouteId: {{routeId}}
+  Booking.ClimbDate: 2026-12-20
+  Booking.Participants[0].FullName: Bruno Test
+  Booking.Participants[0].NIK: 3201010101010002
+  Booking.Participants[0].PhoneNumber: 081234567890
+  Booking.Participants[0].EmergencyContactName: Ibu
+  Booking.Participants[0].EmergencyContactPhone: 081298765432
+}

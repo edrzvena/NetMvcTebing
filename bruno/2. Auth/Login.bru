@@ -1,0 +1,17 @@
+meta {
+  name: Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/Account/Login
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  __RequestVerificationToken: {{csrfToken}}
+  Email: {{email}}
+  Password: {{password}}
+}

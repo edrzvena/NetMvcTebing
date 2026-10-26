@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "Tebing",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}
